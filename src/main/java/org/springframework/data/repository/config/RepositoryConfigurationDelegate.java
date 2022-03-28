@@ -47,6 +47,7 @@ import org.springframework.core.metrics.StartupStep;
 import org.springframework.data.repository.core.support.RepositoryFactorySupport;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
 import org.springframework.util.StopWatch;
 
 /**
@@ -185,7 +186,16 @@ public class RepositoryConfigurationDelegate {
 						configuration.getRepositoryFactoryBeanClassName()));
 			}
 
-			beanDefinition.setAttribute(FACTORY_BEAN_OBJECT_TYPE, configuration.getRepositoryInterface());
+			// xxx
+
+			if(ClassUtils.isPresent("org.eclipse.persistence.Version",  resourceLoader.getClassLoader())) {
+
+				beanDefinition.setAttribute(FACTORY_BEAN_OBJECT_TYPE, configuration.getRepositoryInterface());
+			} else {
+				System.out.println("repi interface: " + configuration.getRepositoryInterfaceType());
+//				beanDefinition.setBeanClass(configuration.getRepositoryInterfaceType());
+				beanDefinition.setAttribute(FACTORY_BEAN_OBJECT_TYPE, configuration.getRepositoryInterfaceType());
+			}
 
 			registry.registerBeanDefinition(beanName, beanDefinition);
 			definitions.add(new BeanComponentDefinition(beanDefinition, beanName));

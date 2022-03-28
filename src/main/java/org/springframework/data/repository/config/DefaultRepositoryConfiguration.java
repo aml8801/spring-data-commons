@@ -75,6 +75,11 @@ public class DefaultRepositoryConfiguration<T extends RepositoryConfigurationSou
 		return ConfigurationUtils.getRequiredBeanClassName(definition);
 	}
 
+	@Override
+	public Class getRepositoryInterfaceType() {
+		return definition.getResolvableType().resolve();
+	}
+
 	public RepositoryConfigurationSource getConfigSource() {
 		return configurationSource;
 	}
