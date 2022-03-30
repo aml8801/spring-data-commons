@@ -53,7 +53,7 @@ public interface RepositoryConfiguration<T extends RepositoryConfigurationSource
 	 */
 	String getRepositoryInterface();
 
-	default Class getRepositoryInterfaceType() {
+	default Class getRepositoryInterfaceType(ClassLoader classLoader) {
 		try {
 			return Class.forName(getRepositoryInterface());
 		} catch (ClassNotFoundException e) {

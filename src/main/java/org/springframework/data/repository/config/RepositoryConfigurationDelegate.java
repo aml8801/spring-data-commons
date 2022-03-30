@@ -34,6 +34,7 @@ import org.springframework.beans.factory.support.AutowireCandidateResolver;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.context.annotation.ContextAnnotationAutowireCandidateResolver;
 import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.core.env.Environment;
@@ -189,12 +190,14 @@ public class RepositoryConfigurationDelegate {
 			// xxx
 
 			if(ClassUtils.isPresent("org.eclipse.persistence.Version",  resourceLoader.getClassLoader())) {
-
 				beanDefinition.setAttribute(FACTORY_BEAN_OBJECT_TYPE, configuration.getRepositoryInterface());
 			} else {
-				System.out.println("repi interface: " + configuration.getRepositoryInterfaceType());
-//				beanDefinition.setBeanClass(configuration.getRepositoryInterfaceType());
-				beanDefinition.setAttribute(FACTORY_BEAN_OBJECT_TYPE, configuration.getRepositoryInterfaceType());
+
+				Class repositoryInterfaceType = configuration.getRepositoryInterfaceType(resourceLoader.getClassLoader());
+				System.out.println("repo interface: " + repositoryInterfaceType);
+				if(beanDefinition instanceof RootBeanDefinition) {
+					((RootBeanDefinition)beanDefinition).setTargetType(repositoryInterfaceType);
+				}
 			}
 
 			registry.registerBeanDefinition(beanName, beanDefinition);
