@@ -33,11 +33,13 @@ package org.springframework.data.aot;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.InvalidPropertyException;
 import org.springframework.beans.PropertyValue;
@@ -53,6 +55,7 @@ import org.springframework.data.repository.core.support.DefaultRepositoryMetadat
 import org.springframework.data.repository.core.support.RepositoryFactoryBeanSupport;
 import org.springframework.data.repository.core.support.RepositoryFragment;
 import org.springframework.lang.Nullable;
+import org.springframework.util.ObjectUtils;
 
 /**
  * @author Christoph Strobl
@@ -78,7 +81,11 @@ public class AotRepositoryInformation extends RepositoryInformationSupport imple
 		DefaultRepositoryMetadata metadata = new DefaultRepositoryMetadata(
 				readRepositoryInterfaceFromBeanDefinition(beanContext));
 		Class<?> repositoryBaseClass = readRepositoryBaseClassFromBeanDefinition(beanContext);
+
 		List<RepositoryFragment<?>> repositoryFragments = readFragmentsFromBeanDefinition(beanContext);
+		if (repositoryFragments.isEmpty()) {
+			repositoryFragments = readCustomImplementationFromBeanDefinition(beanContext);
+		}
 
 		return new AotRepositoryInformation(metadata, repositoryBaseClass, repositoryFragments);
 	}
@@ -92,11 +99,11 @@ public class AotRepositoryInformation extends RepositoryInformationSupport imple
 
 		PropertyValue repositoryBaseClass = beanContext.getPropertyValue(REPOSITORY_BASE_CLASS_PROPERTY);
 
-		if(repositoryBaseClass.getValue() instanceof Class<?> type) {
+		if (repositoryBaseClass.getValue() instanceof Class<?> type) {
 			return type;
 		}
 
-		if(repositoryBaseClass.getValue() instanceof String typeName) {
+		if (repositoryBaseClass.getValue() instanceof String typeName) {
 
 			return beanContext //
 					.resolveType(typeName) //
@@ -123,7 +130,29 @@ public class AotRepositoryInformation extends RepositoryInformationSupport imple
 				.resolveType(repositoryInterface.toString()) //
 				.orElseThrow(() -> new CannotLoadBeanClassException(null, beanContext.getBeanName(),
 						repositoryInterface.toString(), new ClassNotFoundException(repositoryInterface.toString())));
+	}
 
+	private static List<RepositoryFragment<?>> readCustomImplementationFromBeanDefinition(AotBeanContext beanContext) {
+
+		if (!beanContext.containsProperty(CUSTOM_IMPLEMENTATION_PROPERTY)) {
+			return Collections.emptyList();
+		}
+
+		PropertyValue propertyValue = beanContext.getPropertyValue(CUSTOM_IMPLEMENTATION_PROPERTY);
+		if (propertyValue.getValue() instanceof BeanReference beanReference) {
+			Class<?> customImplementationType = beanContext.resolveType(beanReference);
+			if(!ObjectUtils.isEmpty(customImplementationType.getInterfaces())) {
+				ArrayList<RepositoryFragment<?>> repositoryFragments = new ArrayList<>(Arrays.stream(customImplementationType.getInterfaces())
+						.map(RepositoryFragment::structural)
+						.collect(Collectors.toList()));
+				repositoryFragments.add(RepositoryFragment.implemented(customImplementationType));
+				return repositoryFragments;
+			}
+			return Collections.singletonList(RepositoryFragment.implemented(beanContext.resolveType(beanReference)));
+		}
+
+		throw new InvalidPropertyException(RepositoryFactoryBeanSupport.class, CUSTOM_IMPLEMENTATION_PROPERTY,
+				"Not a BeanReference to custom repository implementation!");
 	}
 
 	private static List<RepositoryFragment<?>> readFragmentsFromBeanDefinition(AotBeanContext beanContext) {

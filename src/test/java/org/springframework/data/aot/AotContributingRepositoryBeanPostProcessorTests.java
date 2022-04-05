@@ -166,7 +166,7 @@ public class AotContributingRepositoryBeanPostProcessorTests {
 
 		assertThatContribution(repositoryBeanContribution) //
 				.targetRepositoryTypeIs(ConfigWithCustomImplementation.RepositoryWithCustomImplementation.class) //
-				.hasNoFragments() //
+				.hasFragments() //
 				.codeContributionSatisfies(contribution -> { //
 					contribution.contributesReflectionFor(ConfigWithCustomImplementation.RepositoryWithCustomImplementation.class) // repository
 							// interface
