@@ -47,9 +47,10 @@ import org.springframework.util.ClassUtils;
  * @author Christoph Strobl
  * @since 2022/04
  */
-record AotBeanContext(String beanName, RootBeanDefinition beanDefinition, ConfigurableListableBeanFactory beanFactory) {
+record AotBeanContext(String beanName, RootBeanDefinition beanDefinition, ConfigurableListableBeanFactory beanFactory) implements RepositoryBeanContext{
 
-	String getBeanName() {
+	@Override
+	public String getBeanName() {
 		return beanName;
 	}
 
@@ -57,15 +58,17 @@ record AotBeanContext(String beanName, RootBeanDefinition beanDefinition, Config
 		return beanDefinition;
 	}
 
-	ConfigurableListableBeanFactory getBeanFactory() {
+	public ConfigurableListableBeanFactory getBeanFactory() {
 		return beanFactory;
 	}
 
-	boolean isTypePresent(String typeName) {
+	@Override
+	public boolean isTypePresent(String typeName) {
 		return ClassUtils.isPresent(typeName, beanFactory.getBeanClassLoader());
 	}
 
-	Optional<Class<?>> resolveType(String typeName) {
+	@Override
+	public Optional<Class<?>> resolveType(String typeName) {
 		if (!isTypePresent(typeName)) {
 			return Optional.empty();
 		}
@@ -77,38 +80,46 @@ record AotBeanContext(String beanName, RootBeanDefinition beanDefinition, Config
 		return Optional.empty();
 	}
 
-	Class<?> resolveRequiredType(String typeName) throws ClassNotFoundException {
+	@Override
+	public Class<?> resolveRequiredType(String typeName) throws ClassNotFoundException {
 		return ClassUtils.forName(typeName, beanFactory.getBeanClassLoader());
 	}
 
+	@Override
 	@Nullable
-	Class<?> resolveType(BeanReference beanReference) {
+	public Class<?> resolveType(BeanReference beanReference) {
 		return beanFactory.getType(beanReference.getBeanName(), false);
 	}
 
-	BeanDefinition getBeanDefinition(String beanName) throws NoSuchBeanDefinitionException {
+	@Override
+	public BeanDefinition getBeanDefinition(String beanName) throws NoSuchBeanDefinitionException {
 		return beanFactory.getBeanDefinition(beanName);
 	}
 
-	boolean containsProperty(String propertyName) {
+	@Override
+	public boolean containsProperty(String propertyName) {
 		return beanDefinition.getPropertyValues().contains(propertyName);
 	}
 
+	@Override
 	@Nullable
-	PropertyValue getPropertyValue(String propertyName) {
+	public PropertyValue getPropertyValue(String propertyName) {
 		return beanDefinition.getPropertyValues().getPropertyValue(propertyName);
 	}
 
-	boolean hasConstructorArguments() {
+	@Override
+	public boolean hasConstructorArguments() {
 		return beanDefinition.getConstructorArgumentValues().getArgumentCount() > 0;
 	}
 
-	Object getConstructorArgument(int index) {
+	@Override
+	public Object getConstructorArgument(int index) {
 		ValueHolder arg = beanDefinition.getConstructorArgumentValues().getArgumentValue(index, null);
 		return arg.getValue();
 	}
 
-	<T> T getConstructorArgument(int index, Class<T> asType) {
+	@Override
+	public <T> T getConstructorArgument(int index, Class<T> asType) {
 
 		Object value = getConstructorArgument(index);
 		if (value == null) {
@@ -122,7 +133,8 @@ record AotBeanContext(String beanName, RootBeanDefinition beanDefinition, Config
 		return asType.cast(value);
 	}
 
-	RootBeanDefinition getRootBeanDefinition(String beanName) throws NoSuchBeanDefinitionException {
+	@Override
+	public RootBeanDefinition getRootBeanDefinition(String beanName) throws NoSuchBeanDefinitionException {
 		BeanDefinition val = beanFactory.getBeanDefinition(beanName);
 		if (!(val instanceof RootBeanDefinition)) {
 			throw new IllegalStateException("oh oh");
@@ -130,11 +142,13 @@ record AotBeanContext(String beanName, RootBeanDefinition beanDefinition, Config
 		return RootBeanDefinition.class.cast(val);
 	}
 
-	boolean isFactoryBean() {
+	@Override
+	public boolean isFactoryBean() {
 		return isFactoryBean(beanName);
 	}
 
-	boolean isFactoryBean(String beanName) {
+	@Override
+	public boolean isFactoryBean(String beanName) {
 		return beanFactory.isFactoryBean(beanName);
 	}
 }

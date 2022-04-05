@@ -31,7 +31,6 @@
  */
 package org.springframework.data.aot;
 
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -65,7 +64,7 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 		AotBeanContext beanContext = new AotBeanContext(beanName, beanDefinition, beanFactory);
 		AotRepositoryInformation repositoryInformation = AotRepositoryInformation.from(beanContext);
 
-		return new RepositoryBeanContribution(repositoryInformation, discoverTypes(repositoryInformation, typeFilter()));
+		return new RepositoryBeanContribution(beanContext, repositoryInformation, discoverTypes(repositoryInformation, typeFilter()));
 	}
 
 	protected Set<Class<?>> discoverTypes(AotRepositoryInformation repositoryInformation, Predicate<Class<?>> filter) {
