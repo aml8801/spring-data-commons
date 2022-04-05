@@ -42,6 +42,7 @@ import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.generator.AotContributingBeanPostProcessor;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.data.repository.Repository;
+import org.springframework.data.repository.core.RepositoryInformation;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
 
@@ -62,12 +63,12 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 		}
 
 		AotBeanContext beanContext = new AotBeanContext(beanName, beanDefinition, beanFactory);
-		AotRepositoryInformation repositoryInformation = AotRepositoryInformation.from(beanContext);
+		RepositoryInformation repositoryInformation = RepositoryBeanDefinitionReader.readRepositoryInformation(beanContext);
 
 		return new RepositoryBeanContribution(beanContext, repositoryInformation, discoverTypes(repositoryInformation, typeFilter()));
 	}
 
-	protected Set<Class<?>> discoverTypes(AotRepositoryInformation repositoryInformation, Predicate<Class<?>> filter) {
+	protected Set<Class<?>> discoverTypes(RepositoryInformation repositoryInformation, Predicate<Class<?>> filter) {
 
 		Set<Class<?>> types = new LinkedHashSet<>();
 		// TODO:
