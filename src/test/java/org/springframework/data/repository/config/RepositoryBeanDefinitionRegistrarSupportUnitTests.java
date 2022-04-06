@@ -18,8 +18,6 @@ package org.springframework.data.repository.config;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import java.lang.annotation.Annotation;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,7 +31,6 @@ import org.springframework.context.annotation.AnnotationBeanNameGenerator;
 import org.springframework.context.annotation.ComponentScan.Filter;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.core.env.StandardEnvironment;
-import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.core.type.StandardAnnotationMetadata;
 import org.springframework.data.mapping.Person;
@@ -150,35 +147,6 @@ class RepositoryBeanDefinitionRegistrarSupportUnitTests {
 
 		for (var name : names) {
 			verify(registry, times(0)).registerBeanDefinition(eq(name), any(BeanDefinition.class));
-		}
-	}
-
-	static class DummyRegistrar extends RepositoryBeanDefinitionRegistrarSupport {
-
-		DummyRegistrar() {
-			setResourceLoader(new DefaultResourceLoader());
-		}
-
-		@Override
-		protected Class<? extends Annotation> getAnnotation() {
-			return EnableRepositories.class;
-		}
-
-		@Override
-		protected RepositoryConfigurationExtension getExtension() {
-			return new DummyConfigurationExtension();
-		}
-	}
-
-	static class DummyConfigurationExtension extends RepositoryConfigurationExtensionSupport {
-
-		public String getRepositoryFactoryBeanClassName() {
-			return DummyRepositoryFactoryBean.class.getName();
-		}
-
-		@Override
-		protected String getModulePrefix() {
-			return "commons";
 		}
 	}
 

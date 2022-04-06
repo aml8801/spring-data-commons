@@ -29,61 +29,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.data.aot;
+package org.springframework.data.repository.config;
 
-import java.lang.reflect.Method;
-import java.util.Collection;
-import java.util.LinkedHashSet;
-import java.util.Set;
-
-import org.springframework.data.repository.core.RepositoryInformation;
-import org.springframework.data.repository.core.RepositoryInformationSupport;
 import org.springframework.data.repository.core.RepositoryMetadata;
-import org.springframework.data.repository.core.support.RepositoryFragment;
-import org.springframework.lang.Nullable;
+import org.springframework.data.repository.core.support.ReactiveDummyRepositoryFactoryBean;
 
 /**
  * @author Christoph Strobl
- * @since 2022/03
+ * @since 2022/04
  */
-public class AotRepositoryInformation extends RepositoryInformationSupport implements RepositoryInformation {
+class ReactiveDummyConfigurationExtension extends RepositoryConfigurationExtensionSupport {
 
-	private final Collection<RepositoryFragment<?>> fragments;
-
-	AotRepositoryInformation(RepositoryMetadata repositoryMetadata, Class<?> repositoryBaseClass,
-			Collection<RepositoryFragment<?>> fragments) {
-
-		super(repositoryMetadata, repositoryBaseClass);
-		this.fragments = fragments;
+	public String getRepositoryFactoryBeanClassName() {
+		return ReactiveDummyRepositoryFactoryBean.class.getName();
 	}
 
 	@Override
-	public boolean isCustomMethod(Method method) {
+	protected String getModulePrefix() {
+		return "commons";
+	}
 
-		// TODO:
+	@Override
+	protected boolean useRepositoryConfiguration(RepositoryMetadata metadata) {
+		if(metadata.isReactiveRepository()) {
+			return true;
+		}
 		return false;
 	}
-
-	@Override
-	public boolean isBaseClassMethod(Method method) {
-		// TODO
-		return false;
-	}
-
-	@Override
-	public Method getTargetClassMethod(Method method) {
-
-		// TODO
-		return method;
-	}
-
-	/**
-	 * @return
-	 * @since 3.0
-	 */
-	@Nullable
-	public Set<RepositoryFragment<?>> getFragments() {
-		return new LinkedHashSet<>(fragments);
-	}
-
 }

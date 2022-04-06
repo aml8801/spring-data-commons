@@ -29,61 +29,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.data.aot;
+package org.springframework.data.repository.config;
 
-import java.lang.reflect.Method;
-import java.util.Collection;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.lang.annotation.Annotation;
 
-import org.springframework.data.repository.core.RepositoryInformation;
-import org.springframework.data.repository.core.RepositoryInformationSupport;
-import org.springframework.data.repository.core.RepositoryMetadata;
-import org.springframework.data.repository.core.support.RepositoryFragment;
-import org.springframework.lang.Nullable;
+import org.springframework.core.io.DefaultResourceLoader;
 
 /**
  * @author Christoph Strobl
- * @since 2022/03
+ * @since 2022/04
  */
-public class AotRepositoryInformation extends RepositoryInformationSupport implements RepositoryInformation {
+class ReactiveDummyRegistrar extends RepositoryBeanDefinitionRegistrarSupport {
 
-	private final Collection<RepositoryFragment<?>> fragments;
-
-	AotRepositoryInformation(RepositoryMetadata repositoryMetadata, Class<?> repositoryBaseClass,
-			Collection<RepositoryFragment<?>> fragments) {
-
-		super(repositoryMetadata, repositoryBaseClass);
-		this.fragments = fragments;
+	ReactiveDummyRegistrar() {
+		setResourceLoader(new DefaultResourceLoader());
 	}
 
 	@Override
-	public boolean isCustomMethod(Method method) {
-
-		// TODO:
-		return false;
+	protected Class<? extends Annotation> getAnnotation() {
+		return EnableReactiveRepositories.class;
 	}
 
 	@Override
-	public boolean isBaseClassMethod(Method method) {
-		// TODO
-		return false;
+	protected RepositoryConfigurationExtension getExtension() {
+		return new ReactiveDummyConfigurationExtension();
 	}
-
-	@Override
-	public Method getTargetClassMethod(Method method) {
-
-		// TODO
-		return method;
-	}
-
-	/**
-	 * @return
-	 * @since 3.0
-	 */
-	@Nullable
-	public Set<RepositoryFragment<?>> getFragments() {
-		return new LinkedHashSet<>(fragments);
-	}
-
 }
