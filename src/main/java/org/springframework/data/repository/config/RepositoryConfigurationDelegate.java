@@ -200,6 +200,8 @@ public class RepositoryConfigurationDelegate {
 				}
 			}
 
+			// write bean bean definition to
+
 			registry.registerBeanDefinition(beanName, beanDefinition);
 			definitions.add(new BeanComponentDefinition(beanDefinition, beanName));
 		}
@@ -215,6 +217,14 @@ public class RepositoryConfigurationDelegate {
 			logger.info(LogMessage.format("Finished Spring Data repository scanning in %s ms. Found %s %s repository interfaces.", //
 					watch.getLastTaskTimeMillis(), configurations.size(), extension.getModuleName()));
 		}
+
+
+		// write out the definitions to the registered post processor.
+		// check module specific configuration
+		// registry.isBeanNameInUse() to check for duplicates - merge them into one.
+
+		// register bean entity registrar
+
 
 		return definitions;
 	}

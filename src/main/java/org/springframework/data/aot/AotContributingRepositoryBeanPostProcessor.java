@@ -53,10 +53,17 @@ import org.springframework.util.ClassUtils;
 public class AotContributingRepositoryBeanPostProcessor implements AotContributingBeanPostProcessor, BeanFactoryAware {
 
 	private ConfigurableListableBeanFactory beanFactory;
+	// instance supplier
+	// set the Map<String, RepositoryConfiguration<?>> configurationsByRepositoryName  //
+
 
 	@Nullable
 	@Override
 	public RepositoryBeanContribution contribute(RootBeanDefinition beanDefinition, Class<?> beanType, String beanName) {
+
+		// check if repo config is available or do the parsing
+
+
 
 		if (!ClassUtils.isAssignable(Repository.class, beanDefinition.getTargetType())) {
 			return null;
