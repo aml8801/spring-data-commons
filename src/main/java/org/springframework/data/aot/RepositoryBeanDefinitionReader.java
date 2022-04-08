@@ -33,6 +33,7 @@ package org.springframework.data.aot;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -41,14 +42,18 @@ import org.springframework.beans.InvalidPropertyException;
 import org.springframework.beans.PropertyValue;
 import org.springframework.beans.factory.CannotLoadBeanClassException;
 import org.springframework.beans.factory.config.BeanReference;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.config.ConstructorArgumentValues.ValueHolder;
 import org.springframework.beans.factory.support.BeanDefinitionValidationException;
 import org.springframework.beans.factory.support.RootBeanDefinition;
+import org.springframework.data.repository.config.RepositoryFragmentConfiguration;
+import org.springframework.data.repository.config.RepositoryMetadata;
 import org.springframework.data.repository.core.RepositoryInformation;
 import org.springframework.data.repository.core.support.DefaultRepositoryMetadata;
 import org.springframework.data.repository.core.support.RepositoryFactoryBeanSupport;
 import org.springframework.data.repository.core.support.RepositoryFragment;
 import org.springframework.lang.Nullable;
+import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
 
 /**
@@ -73,6 +78,40 @@ public class RepositoryBeanDefinitionReader {
 		}
 
 		return new AotRepositoryInformation(metadata, repositoryBaseClass, repositoryFragments);
+	}
+
+	static RepositoryInformation readRepositoryInformation(RepositoryMetadata metadata,
+			ConfigurableListableBeanFactory beanFactory) {
+
+		DefaultRepositoryMetadata metadata1 = new DefaultRepositoryMetadata(
+				metadata.getRepositoryInterfaceType(beanFactory.getBeanClassLoader()));
+		Class<?> repositoryBaseClass = (Class<?>) metadata.getRepositoryBaseClassName()
+				.map(it -> forName(it.toString(), beanFactory)).orElse(null);
+
+		Object theFragments = metadata.getFragmentConfiguration().stream().flatMap(it -> {
+			RepositoryFragmentConfiguration fragmentConfiguration = (RepositoryFragmentConfiguration) it;
+
+			List<RepositoryFragment> fragments = new ArrayList<>(2);
+			if (fragmentConfiguration.getClassName() != null) {
+				fragments.add(RepositoryFragment.implemented(forName(fragmentConfiguration.getClassName(), beanFactory)));
+			}
+			if (fragmentConfiguration.getInterfaceName() != null) {
+				fragments.add(RepositoryFragment.structural(forName(fragmentConfiguration.getInterfaceName(), beanFactory)));
+			}
+
+			return fragments.stream();
+		}).collect(Collectors.toList());
+
+		return new AotRepositoryInformation(metadata1, repositoryBaseClass,
+				(Collection<RepositoryFragment<?>>) theFragments);
+	}
+
+	static Class<?> forName(String name, ConfigurableListableBeanFactory beanFactory) {
+		try {
+			return ClassUtils.forName(name, beanFactory.getBeanClassLoader());
+		} catch (ClassNotFoundException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Nullable

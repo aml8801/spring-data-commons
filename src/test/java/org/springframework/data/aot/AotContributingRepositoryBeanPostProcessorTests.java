@@ -186,6 +186,17 @@ public class AotContributingRepositoryBeanPostProcessorTests {
 	}
 
 	@Test
+	void contributesDomainTypeAndReachablesCorrectly() {
+		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(SimpleCrudRepository.class)
+				.forRepository(SimpleCrudRepository.MyRepo.class);
+
+		assertThatContribution(repositoryBeanContribution) //
+				.codeContributionSatisfies(contribution -> {
+					contribution.contributesReflectionFor(SimpleCrudRepository.Person.class, SimpleCrudRepository.Address.class);
+				});
+	}
+
+	@Test
 	void contributesReactiveRepositoryCorrectly() {
 
 		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(ReactiveConfig.class)
@@ -236,7 +247,9 @@ public class AotContributingRepositoryBeanPostProcessorTests {
 			String beanName = repoBeanNames[0];
 			BeanDefinition beanDefinition = ctx.getBeanDefinition(beanName);
 
-			AotContributingRepositoryBeanPostProcessor postProcessor = new AotContributingRepositoryBeanPostProcessor();
+			AotContributingRepositoryBeanPostProcessor postProcessor = ctx.getBean(AotContributingRepositoryBeanPostProcessor.class);
+
+//			AotContributingRepositoryBeanPostProcessor postProcessor = new AotContributingRepositoryBeanPostProcessor();
 			postProcessor.setBeanFactory(ctx.getDefaultListableBeanFactory());
 
 			return postProcessor.contribute((RootBeanDefinition) beanDefinition, it, beanName);

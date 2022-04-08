@@ -28,6 +28,7 @@ import org.apache.commons.logging.LogFactory;
 
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.beans.factory.config.DependencyDescriptor;
+import org.springframework.beans.factory.generator.AotContributingBeanFactoryPostProcessor;
 import org.springframework.beans.factory.parsing.BeanComponentDefinition;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.beans.factory.support.AutowireCandidateResolver;
@@ -45,6 +46,7 @@ import org.springframework.core.io.support.SpringFactoriesLoader;
 import org.springframework.core.log.LogMessage;
 import org.springframework.core.metrics.ApplicationStartup;
 import org.springframework.core.metrics.StartupStep;
+import org.springframework.data.aot.AotContributingRepositoryBeanPostProcessor;
 import org.springframework.data.repository.core.support.RepositoryFactorySupport;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -162,6 +164,7 @@ public class RepositoryConfigurationDelegate {
 				.getRepositoryConfigurations(configurationSource, resourceLoader, inMultiStoreMode);
 
 		Map<String, RepositoryConfiguration<?>> configurationsByRepositoryName = new HashMap<>(configurations.size());
+		Map<String, RepositoryMetadata<?>> metadataMap = new HashMap<>(configurations.size());
 
 		for (RepositoryConfiguration<? extends RepositoryConfigurationSource> configuration : configurations) {
 
@@ -202,11 +205,17 @@ public class RepositoryConfigurationDelegate {
 
 			// write bean bean definition to
 
+			// the metadata
+			metadataMap.put(beanName, builder.buildMetadata(configuration));
+
 			registry.registerBeanDefinition(beanName, beanDefinition);
 			definitions.add(new BeanComponentDefinition(beanDefinition, beanName));
 		}
 
 		potentiallyLazifyRepositories(configurationsByRepositoryName, registry, configurationSource.getBootstrapMode());
+
+
+
 
 		watch.stop();
 
@@ -219,12 +228,19 @@ public class RepositoryConfigurationDelegate {
 		}
 
 
+
+
 		// write out the definitions to the registered post processor.
 		// check module specific configuration
 		// registry.isBeanNameInUse() to check for duplicates - merge them into one.
 
-		// register bean entity registrar
+		registry.registerBeanDefinition("data.post-processor", BeanDefinitionBuilder.rootBeanDefinition(AotContributingRepositoryBeanPostProcessor.class, () -> {
+			AotContributingRepositoryBeanPostProcessor postProcessor = new AotContributingRepositoryBeanPostProcessor();
+			postProcessor.setConfigMap(metadataMap);
+			return postProcessor;
+		}).getBeanDefinition());
 
+		// register bean entity registrar
 
 		return definitions;
 	}

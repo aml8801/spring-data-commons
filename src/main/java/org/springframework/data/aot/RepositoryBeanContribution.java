@@ -175,7 +175,24 @@ public class RepositoryBeanContribution implements BeanInstantiationContribution
 	}
 
 	protected void contributeType(Class<?> type, CodeContribution contribution) {
-		// todo
+		if (type.isAnnotation()) {
+			contribution.runtimeHints().reflection().registerType(type, hint -> {
+				hint.withMembers(MemberCategory.INTROSPECT_PUBLIC_METHODS);
+			});
+			return;
+		}
+		if (type.isInterface()) {
+			contribution.runtimeHints().reflection().registerType(type, hint -> {
+				hint.withMembers(MemberCategory.INVOKE_PUBLIC_METHODS);
+			});
+			return;
+		}
+		if (type.isPrimitive()) {
+			return;
+		}
+		contribution.runtimeHints().reflection().registerType(type, hint -> {
+			hint.withMembers(MemberCategory.INVOKE_DECLARED_CONSTRUCTORS, MemberCategory.INVOKE_PUBLIC_METHODS);
+		});
 	}
 
 	protected void contributeRepositoryInformation(RepositoryInformation repositoryInformation,

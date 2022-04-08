@@ -15,6 +15,8 @@
  */
 package org.springframework.data.repository.config;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -132,6 +134,43 @@ class RepositoryBeanDefinitionBuilder {
 				ParsingUtils.getSourceBeanDefinition(fragmentsBuilder, configuration.getSource()));
 
 		return builder;
+	}
+
+	public RepositoryMetadata buildMetadata(RepositoryConfiguration<?> configuration) {
+
+		ImplementationDetectionConfiguration config = configuration
+				.toImplementationDetectionConfiguration(metadataReaderFactory);
+
+		List<RepositoryFragmentConfiguration> repositoryFragmentConfigurationStream = fragmentMetadata.getFragmentInterfaces(configuration.getRepositoryInterface()) //
+				.map(it -> detectRepositoryFragmentConfiguration(it, config)) //
+				.flatMap(Optionals::toStream)
+				.collect(Collectors.toList());//
+
+		if(repositoryFragmentConfigurationStream.isEmpty()) {
+
+			ImplementationLookupConfiguration lookup = configuration.toLookupConfiguration(metadataReaderFactory);
+			Optional<AbstractBeanDefinition> beanDefinition = implementationDetector.detectCustomImplementation(lookup);
+
+			if(beanDefinition.isPresent()) {
+				repositoryFragmentConfigurationStream = new ArrayList<>(1);
+
+				List<String> interfaceNames = fragmentMetadata.getFragmentInterfaces(configuration.getRepositoryInterface()).collect(Collectors.toList());
+				String implClassName = beanDefinition.get().getBeanClassName();
+
+				try {
+					for (String iName : metadataReaderFactory.getMetadataReader(implClassName).getClassMetadata().getInterfaceNames()) {
+						if(interfaceNames.contains(iName)) {
+							repositoryFragmentConfigurationStream.add(new RepositoryFragmentConfiguration(iName, implClassName));
+							break;
+						}
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		return new RepositoryMetadata(configuration, repositoryFragmentConfigurationStream);
 	}
 
 	private Optional<String> registerCustomImplementation(RepositoryConfiguration<?> configuration) {
