@@ -1,27 +1,11 @@
 /*
- * Copyright 2022. the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-/*
  * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -45,11 +29,14 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.core.DecoratingProxy;
 import org.springframework.data.aot.sample.ConfigWithCustomImplementation;
 import org.springframework.data.aot.sample.ConfigWithFragments;
+import org.springframework.data.aot.sample.ConfigWithQueryMethods;
+import org.springframework.data.aot.sample.ConfigWithQueryMethods.ProjectionInterface;
 import org.springframework.data.aot.sample.ReactiveConfig;
 import org.springframework.data.aot.sample.RepositoryConfigWithCustomBaseClass;
 import org.springframework.data.aot.sample.SimpleCrudRepository;
 import org.springframework.data.aot.sample.SimpleTxComponentCrudRepository;
 import org.springframework.data.aot.sample.SimpleTxCrudRepository;
+import org.springframework.data.domain.Page;
 import org.springframework.data.repository.PagingAndSortingRepository;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.reactive.ReactiveSortingRepository;
@@ -232,6 +219,33 @@ public class AotContributingRepositoryBeanPostProcessorTests {
 				});
 	}
 
+	@Test
+	void contributesTypesFromQueryMethods() {
+
+		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(ConfigWithQueryMethods.class)
+				.forRepository(ConfigWithQueryMethods.CustomerRepositoryWithQueryMethods.class);
+
+		assertThatContribution(repositoryBeanContribution) //
+				.codeContributionSatisfies(contribution -> {
+					contribution.contributesReflectionFor(ProjectionInterface.class);
+				});
+	}
+
+	@Test
+	void contributesProxiesForPotentialProjections() {
+
+		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(ConfigWithQueryMethods.class)
+				.forRepository(ConfigWithQueryMethods.CustomerRepositoryWithQueryMethods.class);
+
+		assertThatContribution(repositoryBeanContribution) //
+				.codeContributionSatisfies(contribution -> {
+
+					contribution.contributesJdkProxyFor(ProjectionInterface.class);
+					contribution.doesNotContributeJdkProxyFor(Page.class);
+					contribution.doesNotContributeJdkProxyFor(ConfigWithQueryMethods.Person.class);
+				});
+	}
+
 	BeanContributionBuilder computeConfiguration(Class<?> configuration) {
 
 		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
@@ -247,9 +261,10 @@ public class AotContributingRepositoryBeanPostProcessorTests {
 			String beanName = repoBeanNames[0];
 			BeanDefinition beanDefinition = ctx.getBeanDefinition(beanName);
 
-			AotContributingRepositoryBeanPostProcessor postProcessor = ctx.getBean(AotContributingRepositoryBeanPostProcessor.class);
+			AotContributingRepositoryBeanPostProcessor postProcessor = ctx
+					.getBean(AotContributingRepositoryBeanPostProcessor.class);
 
-//			AotContributingRepositoryBeanPostProcessor postProcessor = new AotContributingRepositoryBeanPostProcessor();
+			// AotContributingRepositoryBeanPostProcessor postProcessor = new AotContributingRepositoryBeanPostProcessor();
 			postProcessor.setBeanFactory(ctx.getDefaultListableBeanFactory());
 
 			return postProcessor.contribute((RootBeanDefinition) beanDefinition, it, beanName);

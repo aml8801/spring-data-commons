@@ -1,27 +1,11 @@
 /*
- * Copyright 2022. the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-/*
  * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -45,6 +29,8 @@ import org.springframework.aot.hint.TypeReference;
 import org.springframework.beans.factory.generator.BeanInstantiationContribution;
 import org.springframework.core.DecoratingProxy;
 import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.data.projection.EntityProjectionIntrospector.ProjectionPredicate;
+import org.springframework.data.projection.TargetAware;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.core.RepositoryInformation;
 import org.springframework.data.repository.core.support.RepositoryFragment;
@@ -74,9 +60,7 @@ public class RepositoryBeanContribution implements BeanInstantiationContribution
 	public void applyTo(CodeContribution contribution) {
 
 		writeRepositoryInfo(contribution);
-
 		discoveredTypes.stream().filter(this::contributeTypeInfo).forEach(it -> contributeType(it, contribution));
-
 	}
 
 	private void writeRepositoryInfo(CodeContribution contribution) {
@@ -160,6 +144,14 @@ public class RepositoryBeanContribution implements BeanInstantiationContribution
 						hint.withMembers(MemberCategory.INTROSPECT_PUBLIC_METHODS);
 					});
 		}
+
+		// repository methods
+		repositoryInformation.getQueryMethods().map(repositoryInformation::getReturnedDomainClass)
+				.filter(Class::isInterface).forEach(type -> {
+					if (ProjectionPredicate.typeHierarchy().test(type, repositoryInformation.getDomainType())) {
+						contributeProjection(type, contribution);
+					}
+				});
 	}
 
 	private TypeReference[] transactionalRepositoryProxy() {
@@ -193,6 +185,12 @@ public class RepositoryBeanContribution implements BeanInstantiationContribution
 		contribution.runtimeHints().reflection().registerType(type, hint -> {
 			hint.withMembers(MemberCategory.INVOKE_DECLARED_CONSTRUCTORS, MemberCategory.INVOKE_PUBLIC_METHODS);
 		});
+	}
+
+	protected void contributeProjection(Class<?> type, CodeContribution contribution) {
+
+		contribution.runtimeHints().proxies().registerJdkProxy(type, TargetAware.class, SpringProxy.class,
+				DecoratingProxy.class);
 	}
 
 	protected void contributeRepositoryInformation(RepositoryInformation repositoryInformation,
