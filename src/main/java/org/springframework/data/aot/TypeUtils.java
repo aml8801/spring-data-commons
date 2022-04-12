@@ -38,18 +38,44 @@ import org.springframework.util.ObjectUtils;
 /**
  * @author Christoph Strobl
  */
-class TypeUtils {
+public class TypeUtils {
+
+	public static Set<MergedAnnotation<Annotation>> resolveUsedAnnotations(Class<?> type) {
+
+		Set<MergedAnnotation<Annotation>> annotations = new LinkedHashSet<>();
+		annotations.addAll(TypeUtils.resolveAnnotationsFor(type).collect(Collectors.toSet()));
+		for (Constructor<?> ctor : type.getDeclaredConstructors()) {
+			annotations.addAll(TypeUtils.resolveAnnotationsFor(ctor).collect(Collectors.toSet()));
+			for (Parameter parameter : ctor.getParameters()) {
+				annotations.addAll(TypeUtils.resolveAnnotationsFor(parameter).collect(Collectors.toSet()));
+			}
+		}
+		for (Field field : type.getDeclaredFields()) {
+			annotations.addAll(TypeUtils.resolveAnnotationsFor(field).collect(Collectors.toSet()));
+		}
+		for (Method method : type.getDeclaredMethods()) {
+			annotations.addAll(TypeUtils.resolveAnnotationsFor(method).collect(Collectors.toSet()));
+			for (Parameter parameter : method.getParameters()) {
+				annotations.addAll(TypeUtils.resolveAnnotationsFor(parameter).collect(Collectors.toSet()));
+			}
+		}
+		return annotations;
+	}
 
 	public static Stream<MergedAnnotation<Annotation>> resolveAnnotationsFor(AnnotatedElement element) {
 		return resolveAnnotationsFor(element, AnnotationFilter.PLAIN);
 	}
 
-	public static Stream<MergedAnnotation<Annotation>> resolveAnnotationsFor(AnnotatedElement element, AnnotationFilter filter) {
-		return MergedAnnotations.from(element, SearchStrategy.TYPE_HIERARCHY, RepeatableContainers.standardRepeatables(), filter).stream();
+	public static Stream<MergedAnnotation<Annotation>> resolveAnnotationsFor(AnnotatedElement element,
+			AnnotationFilter filter) {
+		return MergedAnnotations
+				.from(element, SearchStrategy.TYPE_HIERARCHY, RepeatableContainers.standardRepeatables(), filter).stream();
 	}
 
 	public static Set<Class<?>> resolveAnnotationTypesFor(AnnotatedElement element, AnnotationFilter filter) {
-		return MergedAnnotations.from(element, SearchStrategy.TYPE_HIERARCHY, RepeatableContainers.standardRepeatables(), filter).stream().map(MergedAnnotation::getType).collect(Collectors.toSet());
+		return MergedAnnotations
+				.from(element, SearchStrategy.TYPE_HIERARCHY, RepeatableContainers.standardRepeatables(), filter).stream()
+				.map(MergedAnnotation::getType).collect(Collectors.toSet());
 	}
 
 	public static Set<Class<?>> resolveAnnotationTypesFor(AnnotatedElement element) {
@@ -58,7 +84,7 @@ class TypeUtils {
 
 	public static boolean hasAnnotatedField(Class<?> type, String annotationName) {
 
-		for (Field field: type.getDeclaredFields()) {
+		for (Field field : type.getDeclaredFields()) {
 			MergedAnnotations fieldAnnotations = MergedAnnotations.from(field);
 			boolean hasAnnotation = fieldAnnotations.get(annotationName).isPresent();
 			if (hasAnnotation) {
@@ -71,7 +97,7 @@ class TypeUtils {
 	public static Set<Field> getAnnotatedField(Class<?> type, String annotationName) {
 
 		Set<Field> fields = new LinkedHashSet<>();
-		for (Field field: type.getDeclaredFields()) {
+		for (Field field : type.getDeclaredFields()) {
 			if (MergedAnnotations.from(field).get(annotationName).isPresent()) {
 				fields.add(field);
 			}
@@ -83,7 +109,8 @@ class TypeUtils {
 		Set<Class<?>> signature = new LinkedHashSet<>();
 		signature.addAll(resolveTypesInSignature(ResolvableType.forMethodReturnType(method, owner)));
 		for (Parameter parameter : method.getParameters()) {
-			signature.addAll(resolveTypesInSignature(ResolvableType.forMethodParameter(MethodParameter.forParameter(parameter))));
+			signature
+					.addAll(resolveTypesInSignature(ResolvableType.forMethodParameter(MethodParameter.forParameter(parameter))));
 		}
 		return signature;
 	}

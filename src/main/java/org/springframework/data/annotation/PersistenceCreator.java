@@ -27,6 +27,7 @@ import java.lang.annotation.Target;
  * @author Oliver Drotbohm
  * @since 3.0
  */
+@SpringDataAnnotation
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.CONSTRUCTOR, ElementType.METHOD, ElementType.ANNOTATION_TYPE })
 public @interface PersistenceCreator {}

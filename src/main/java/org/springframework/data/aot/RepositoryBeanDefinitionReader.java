@@ -70,7 +70,13 @@ public class RepositoryBeanDefinitionReader {
 		DefaultRepositoryMetadata metadata1 = new DefaultRepositoryMetadata(
 				metadata.getRepositoryInterfaceType(beanFactory.getBeanClassLoader()));
 		Class<?> repositoryBaseClass = (Class<?>) metadata.getRepositoryBaseClassName()
-				.map(it -> forName(it.toString(), beanFactory)).orElse(null);
+				.map(it -> forName(it.toString(), beanFactory)).orElseGet(() -> {
+
+
+					// TODO: retrieve the default without loading the actual RepositoryBeanFactory
+
+					return Object.class;
+				});
 
 		Object theFragments = metadata.getFragmentConfiguration().stream().flatMap(it -> {
 			RepositoryFragmentConfiguration fragmentConfiguration = (RepositoryFragmentConfiguration) it;
@@ -85,6 +91,8 @@ public class RepositoryBeanDefinitionReader {
 
 			return fragments.stream();
 		}).collect(Collectors.toList());
+
+
 
 		return new AotRepositoryInformation(metadata1, repositoryBaseClass,
 				(Collection<RepositoryFragment<?>>) theFragments);

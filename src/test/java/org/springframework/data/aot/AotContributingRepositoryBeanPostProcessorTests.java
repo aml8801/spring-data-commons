@@ -27,9 +27,12 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.DecoratingProxy;
+import org.springframework.core.annotation.SynthesizedAnnotation;
+import org.springframework.data.annotation.QueryAnnotation;
 import org.springframework.data.aot.sample.ConfigWithCustomImplementation;
 import org.springframework.data.aot.sample.ConfigWithFragments;
 import org.springframework.data.aot.sample.ConfigWithQueryMethods;
+import org.springframework.data.aot.sample.ConfigWithQueryMethods.CustomQuery;
 import org.springframework.data.aot.sample.ConfigWithQueryMethods.ProjectionInterface;
 import org.springframework.data.aot.sample.ReactiveConfig;
 import org.springframework.data.aot.sample.RepositoryConfigWithCustomBaseClass;
@@ -39,6 +42,7 @@ import org.springframework.data.aot.sample.SimpleTxCrudRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.repository.PagingAndSortingRepository;
 import org.springframework.data.repository.Repository;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.repository.reactive.ReactiveSortingRepository;
 import org.springframework.transaction.interceptor.TransactionalProxy;
 
@@ -243,6 +247,21 @@ public class AotContributingRepositoryBeanPostProcessorTests {
 					contribution.contributesJdkProxyFor(ProjectionInterface.class);
 					contribution.doesNotContributeJdkProxyFor(Page.class);
 					contribution.doesNotContributeJdkProxyFor(ConfigWithQueryMethods.Person.class);
+				});
+	}
+
+	@Test
+	void contributesProxiesForDataAnnotations() {
+
+		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(ConfigWithQueryMethods.class)
+				.forRepository(ConfigWithQueryMethods.CustomerRepositoryWithQueryMethods.class);
+
+		assertThatContribution(repositoryBeanContribution) //
+				.codeContributionSatisfies(contribution -> {
+
+					contribution.contributesJdkProxy(Param.class, SynthesizedAnnotation.class);
+					contribution.contributesJdkProxy(ConfigWithQueryMethods.CustomQuery.class, SynthesizedAnnotation.class);
+					contribution.contributesJdkProxy(QueryAnnotation.class, SynthesizedAnnotation.class);
 				});
 	}
 

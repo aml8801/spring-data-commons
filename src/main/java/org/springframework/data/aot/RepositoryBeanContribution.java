@@ -16,10 +16,13 @@
 package org.springframework.data.aot;
 
 import java.io.Serializable;
+import java.lang.annotation.Annotation;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 import org.springframework.aop.SpringProxy;
 import org.springframework.aop.framework.Advised;
@@ -29,12 +32,14 @@ import org.springframework.aot.hint.TypeReference;
 import org.springframework.beans.factory.generator.BeanInstantiationContribution;
 import org.springframework.core.DecoratingProxy;
 import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.core.annotation.MergedAnnotation;
 import org.springframework.data.projection.EntityProjectionIntrospector.ProjectionPredicate;
 import org.springframework.data.projection.TargetAware;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.core.RepositoryInformation;
 import org.springframework.data.repository.core.support.RepositoryFragment;
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository;
+import org.springframework.data.util.Lazy;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ClassUtils;
 
@@ -47,6 +52,8 @@ public class RepositoryBeanContribution implements BeanInstantiationContribution
 	private final RepositoryBeanContext context;
 	private final RepositoryInformation repositoryInformation;
 	private Set<Class<?>> discoveredTypes;
+	private Lazy<Set<MergedAnnotation<Annotation>>> discoveredAnnotations = Lazy.of(this::discoverAnnotations);
+	private BiConsumer<AotRepositoryContext, CodeContribution> moduleContribution;
 
 	public RepositoryBeanContribution(RepositoryBeanContext context, RepositoryInformation repositoryInformation,
 			Collection<Class<?>> discoveredTypes) {
@@ -56,11 +63,44 @@ public class RepositoryBeanContribution implements BeanInstantiationContribution
 		this.discoveredTypes = new LinkedHashSet<>(discoveredTypes);
 	}
 
+	public RepositoryBeanContribution setModuleContribution(
+			BiConsumer<AotRepositoryContext, CodeContribution> moduleContribution) {
+		this.moduleContribution = moduleContribution;
+		return this;
+	}
+
+	private Set<MergedAnnotation<Annotation>> discoverAnnotations() {
+
+		Set<MergedAnnotation<Annotation>> annotations = new LinkedHashSet<>(discoveredTypes.stream().flatMap(type -> {
+			return TypeUtils.resolveUsedAnnotations(type).stream();
+		}).collect(Collectors.toSet()));
+		annotations.addAll(TypeUtils.resolveUsedAnnotations(repositoryInformation.getRepositoryInterface()));
+		return annotations;
+	}
+
 	@Override
 	public void applyTo(CodeContribution contribution) {
 
 		writeRepositoryInfo(contribution);
-		discoveredTypes.stream().filter(this::contributeTypeInfo).forEach(it -> contributeType(it, contribution));
+
+		if (moduleContribution != null) {
+			moduleContribution.accept(new AotRepositoryContext() {
+				@Override
+				public RepositoryInformation getRepositoryInformation() {
+					return repositoryInformation;
+				}
+
+				@Override
+				public Set<Class<?>> getResolvedTypes() {
+					return discoveredTypes;
+				}
+
+				@Override
+				public Set<MergedAnnotation<Annotation>> getResolvedAnnotations() {
+					return discoveredAnnotations.get();
+				}
+			}, contribution);
+		}
 	}
 
 	private void writeRepositoryInfo(CodeContribution contribution) {
@@ -166,26 +206,26 @@ public class RepositoryBeanContribution implements BeanInstantiationContribution
 		return true;
 	}
 
-	protected void contributeType(Class<?> type, CodeContribution contribution) {
-		if (type.isAnnotation()) {
-			contribution.runtimeHints().reflection().registerType(type, hint -> {
-				hint.withMembers(MemberCategory.INTROSPECT_PUBLIC_METHODS);
-			});
-			return;
-		}
-		if (type.isInterface()) {
-			contribution.runtimeHints().reflection().registerType(type, hint -> {
-				hint.withMembers(MemberCategory.INVOKE_PUBLIC_METHODS);
-			});
-			return;
-		}
-		if (type.isPrimitive()) {
-			return;
-		}
-		contribution.runtimeHints().reflection().registerType(type, hint -> {
-			hint.withMembers(MemberCategory.INVOKE_DECLARED_CONSTRUCTORS, MemberCategory.INVOKE_PUBLIC_METHODS);
-		});
-	}
+	// protected void contributeType(Class<?> type, CodeContribution contribution) {
+	// if (type.isAnnotation()) {
+	// contribution.runtimeHints().reflection().registerType(type, hint -> {
+	// hint.withMembers(MemberCategory.INTROSPECT_PUBLIC_METHODS);
+	// });
+	// return;
+	// }
+	// if (type.isInterface()) {
+	// contribution.runtimeHints().reflection().registerType(type, hint -> {
+	// hint.withMembers(MemberCategory.INVOKE_PUBLIC_METHODS);
+	// });
+	// return;
+	// }
+	// if (type.isPrimitive()) {
+	// return;
+	// }
+	// contribution.runtimeHints().reflection().registerType(type, hint -> {
+	// hint.withMembers(MemberCategory.INVOKE_DECLARED_CONSTRUCTORS, MemberCategory.INVOKE_PUBLIC_METHODS);
+	// });
+	// }
 
 	protected void contributeProjection(Class<?> type, CodeContribution contribution) {
 

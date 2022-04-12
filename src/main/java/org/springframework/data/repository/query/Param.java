@@ -21,11 +21,14 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import org.springframework.data.annotation.SpringDataAnnotation;
+
 /**
  * Annotation to bind method parameters to a query via a named parameter.
  *
  * @author Oliver Gierke
  */
+@SpringDataAnnotation
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented

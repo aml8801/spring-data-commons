@@ -27,6 +27,7 @@ import java.lang.annotation.Target;
  * @author Jon Brisbin
  * @author Oliver Gierke
  */
+@SpringDataAnnotation
 @Retention(RetentionPolicy.RUNTIME)
 @Target(value = { FIELD, METHOD, ANNOTATION_TYPE })
 public @interface Id {

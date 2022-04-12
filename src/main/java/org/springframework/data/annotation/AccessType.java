@@ -28,6 +28,7 @@ import java.lang.annotation.Target;
  * @author Oliver Gierke
  */
 @Documented
+@SpringDataAnnotation
 @Target({ ElementType.ANNOTATION_TYPE, ElementType.TYPE, ElementType.FIELD, ElementType.METHOD, })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface AccessType {

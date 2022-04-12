@@ -24,6 +24,7 @@ import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
 import org.springframework.aot.generator.CodeContribution;
 import org.springframework.aot.generator.ProtectedAccess;
+import org.springframework.aot.hint.ClassProxyHint;
 import org.springframework.aot.hint.JdkProxyHint;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.javapoet.support.MultiStatement;
@@ -77,6 +78,21 @@ public class CodeContributionAssert extends AbstractAssert<CodeContributionAsser
 
 	private Stream<JdkProxyHint> jdkProxiesFor(Class<?> entryPoint) {
 		return this.actual.runtimeHints().proxies().jdkProxies().filter(jdkProxyHint -> {
+			return jdkProxyHint.getProxiedInterfaces().get(0).getCanonicalName().equals(entryPoint.getCanonicalName());
+		});
+	}
+
+	public CodeContributionAssert contributesClassProxy(Class<?>... proxyInterfaces) {
+
+		assertThat(classProxiesFor(proxyInterfaces[0])).describedAs("Unable to find jdk proxy matching %s", Arrays.asList(proxyInterfaces)).anySatisfy(it -> {
+			new ClassProxyAssert(it).matches(proxyInterfaces);
+		});
+
+		return this;
+	}
+
+	private Stream<ClassProxyHint> classProxiesFor(Class<?> entryPoint) {
+		return this.actual.runtimeHints().proxies().classProxies().filter(jdkProxyHint -> {
 			return jdkProxyHint.getProxiedInterfaces().get(0).getCanonicalName().equals(entryPoint.getCanonicalName());
 		});
 	}

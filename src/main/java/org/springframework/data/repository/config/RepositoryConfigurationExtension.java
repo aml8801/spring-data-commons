@@ -18,9 +18,11 @@ package org.springframework.data.repository.config;
 import java.util.Collection;
 
 import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.generator.AotContributingBeanPostProcessor;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.data.aot.AotContributingRepositoryBeanPostProcessor;
 
 /**
  * SPI to implement store specific extension to the repository bean definition registration process.
@@ -64,6 +66,10 @@ public interface RepositoryConfigurationExtension {
 	 * @return
 	 */
 	String getRepositoryFactoryBeanClassName();
+
+	default Class<? extends AotContributingBeanPostProcessor> getAotPostProcessor() {
+		return AotContributingRepositoryBeanPostProcessor.class;
+	}
 
 	/**
 	 * Callback to register additional bean definitions for a {@literal repositories} root node. This usually includes

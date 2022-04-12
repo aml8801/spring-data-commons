@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2022 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,21 +15,16 @@
  */
 package org.springframework.data.annotation;
 
-import static java.lang.annotation.ElementType.*;
-
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Declares a field as the one representing the principal that recently modified the entity containing the field.
- *
- * @author Ranie Jade Ramiso
- * @author Oliver Gierke
- * @since 1.5
+ * @author Christoph Strobl
  */
-@SpringDataAnnotation
 @Retention(RetentionPolicy.RUNTIME)
-@Target(value = { FIELD, METHOD, ANNOTATION_TYPE })
-public @interface LastModifiedBy {
+@Target(value = { ElementType.ANNOTATION_TYPE })
+public @interface SpringDataAnnotation {
+
 }
