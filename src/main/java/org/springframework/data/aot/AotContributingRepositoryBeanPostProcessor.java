@@ -16,12 +16,10 @@
 package org.springframework.data.aot;
 
 import java.lang.annotation.Annotation;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
 import org.springframework.aot.generator.CodeContribution;
@@ -32,12 +30,8 @@ import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.generator.AotContributingBeanPostProcessor;
 import org.springframework.beans.factory.support.RootBeanDefinition;
-import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.annotation.MergedAnnotation;
 import org.springframework.core.annotation.SynthesizedAnnotation;
-import org.springframework.core.env.StandardEnvironment;
-import org.springframework.core.io.DefaultResourceLoader;
-import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.config.RepositoryConfigurationExtensionSupport;
 import org.springframework.data.repository.config.RepositoryMetadata;
@@ -53,44 +47,39 @@ import org.springframework.util.ObjectUtils;
 public class AotContributingRepositoryBeanPostProcessor implements AotContributingBeanPostProcessor, BeanFactoryAware {
 
 	private ConfigurableListableBeanFactory beanFactory;
-	// instance supplier
-	// set the Map<String, RepositoryConfiguration<?>> configurationsByRepositoryName //
-
-	public Map<String, RepositoryMetadata<?>> getConfigMap() {
-		return configMap;
-	}
-
-	public void setConfigMap(Map<String, RepositoryMetadata<?>> configMap) {
-		this.configMap = configMap;
-	}
-
-	Map<String, RepositoryMetadata<?>> configMap;
-	Collection<Class<?>> managedTypes;
-
-	AtomicBoolean x = new AtomicBoolean(false);
+	private Map<String, RepositoryMetadata<?>> configMap;
 
 	@Nullable
 	@Override
 	public RepositoryBeanContribution contribute(RootBeanDefinition beanDefinition, Class<?> beanType, String beanName) {
 
-		// check if repo config is available or do the parsing
+		if (!ObjectUtils.isEmpty(configMap) && configMap.containsKey(beanName)) {
 
-		if (!ObjectUtils.isEmpty(configMap)) {
-			if (x.compareAndSet(false, true)) {
-				for (RepositoryMetadata<?> metadata : configMap.values()) {
-					Collection<Class<? extends Annotation>> identifyingAnnotations = Collections.emptySet();
-					if (metadata.getConfigurationSource() instanceof RepositoryConfigurationExtensionSupport ces) {
-						identifyingAnnotations = ces.getIdentifyingAnnotations();
-					}
-					AotBeanContext beanContext = new AotBeanContext(metadata.getBasePackages().toSet(),
-							new LinkedHashSet<>(identifyingAnnotations), beanName, beanDefinition, beanFactory);
-					RepositoryInformation repositoryInformation = RepositoryBeanDefinitionReader
-							.readRepositoryInformation(metadata, beanFactory);
-					return new RepositoryBeanContribution(beanContext, repositoryInformation,
-							discoverTypes(beanContext, repositoryInformation, typeFilter())).setModuleContribution(this::contribute);
+			AotContext aotContext = new AotContext() {
+				@Override
+				public ConfigurableListableBeanFactory getBeanFactory() {
+					return beanFactory;
 				}
+			};
+
+			RepositoryMetadata<?> metadata = configMap.get(beanName);
+
+			Set<Class<? extends Annotation>> identifyingAnnotations = Collections.emptySet();
+			if (metadata.getConfigurationSource() instanceof RepositoryConfigurationExtensionSupport ces) {
+				identifyingAnnotations = new LinkedHashSet<>(ces.getIdentifyingAnnotations());
 			}
-			return null;
+
+			RepositoryInformation repositoryInformation = RepositoryBeanDefinitionReader.readRepositoryInformation(metadata,
+					beanFactory);
+
+			DefaultRepositoryContext ctx = new DefaultRepositoryContext();
+			ctx.setAotContext(aotContext);
+			ctx.setBeanName(beanName);
+			ctx.setBasePackages(metadata.getBasePackages().toSet());
+			ctx.setRepositoryInformation(repositoryInformation);
+			ctx.setIdentifyingAnnotations(identifyingAnnotations);
+
+			return new RepositoryBeanContribution(ctx).setModuleContribution(this::contribute);
 		}
 
 		if (!ClassUtils.isAssignable(Repository.class, beanDefinition.getTargetType())) {
@@ -101,8 +90,10 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 				Collections.emptySet(), beanName, beanDefinition, beanFactory);
 		RepositoryInformation repositoryInformation = RepositoryBeanDefinitionReader.readRepositoryInformation(beanContext);
 
-		return new RepositoryBeanContribution(beanContext, repositoryInformation,
-				discoverTypes(beanContext, repositoryInformation, typeFilter())).setModuleContribution(this::contribute);
+		// return new RepositoryBeanContribution(beanContext, repositoryInformation,
+		// discoverTypes(beanContext, repositoryInformation, typeFilter())).setModuleContribution(this::contribute);
+
+		return null;
 	}
 
 	protected void contribute(AotRepositoryContext ctx, CodeContribution contribution) {
@@ -127,44 +118,13 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 		return type.getPackage().getName().startsWith("org.springframework.data");
 	}
 
-	protected Set<Class<?>> discoverTypes(AotBeanContext context, RepositoryInformation repositoryInformation,
-			Predicate<Class<?>> filter) {
-
-		Set<Class<?>> types = new LinkedHashSet<>(TypeCollector.inspect(repositoryInformation.getDomainType()).list());
-
-		repositoryInformation.getQueryMethods()
-				.flatMap(it -> TypeUtils.resolveTypesInSignature(repositoryInformation.getRepositoryInterface(), it).stream())
-				.flatMap(it -> TypeCollector.inspect(it).list().stream()).forEach(types::add);
-
-		if (!context.getIdentifyingAnnotations().isEmpty()) {
-
-			// TODO: move this to an EntityScanner implementation
-			final ClassPathScanningCandidateComponentProvider scanner = new ClassPathScanningCandidateComponentProvider(
-					false);
-			scanner.setEnvironment(new StandardEnvironment());
-			scanner.setResourceLoader(new DefaultResourceLoader(context.getBeanFactory().getBeanClassLoader()));
-			context.getIdentifyingAnnotations().forEach(it -> {
-				scanner.addIncludeFilter(new AnnotationTypeFilter((Class<? extends Annotation>) it));
-			});
-
-			context.getBasePackages().forEach(pkg -> {
-
-				scanner.findCandidateComponents(pkg).forEach(it -> {
-					context.resolveType(it.getBeanClassName()).ifPresent(types::add);
-				});
-			});
-		}
-
-		// context.get
-		return types;
-	}
-
 	protected void contributeType(Class<?> type, CodeContribution contribution) {
 
 		if (type.isAnnotation()) {
 			contribution.runtimeHints().reflection().registerType(type, hint -> {
 				hint.withMembers(MemberCategory.INTROSPECT_PUBLIC_METHODS);
 			});
+			// TODO: not only package check
 			if (type.getPackage().getName().startsWith("org.springframework.data")) {
 				contribution.runtimeHints().proxies().registerJdkProxy(type, SynthesizedAnnotation.class);
 			}
@@ -201,5 +161,13 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 					"AutowiredAnnotationBeanPostProcessor requires a ConfigurableListableBeanFactory: " + beanFactory);
 		}
 		this.beanFactory = (ConfigurableListableBeanFactory) beanFactory;
+	}
+
+	public Map<String, RepositoryMetadata<?>> getConfigMap() {
+		return configMap;
+	}
+
+	public void setConfigMap(Map<String, RepositoryMetadata<?>> configMap) {
+		this.configMap = configMap;
 	}
 }

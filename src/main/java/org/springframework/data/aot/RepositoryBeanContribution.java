@@ -29,6 +29,7 @@ import org.springframework.aop.framework.Advised;
 import org.springframework.aot.generator.CodeContribution;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.TypeReference;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.generator.BeanInstantiationContribution;
 import org.springframework.core.DecoratingProxy;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -49,18 +50,14 @@ import org.springframework.util.ClassUtils;
  */
 public class RepositoryBeanContribution implements BeanInstantiationContribution {
 
-	private final RepositoryBeanContext context;
+	private final AotRepositoryContext context;
 	private final RepositoryInformation repositoryInformation;
-	private Set<Class<?>> discoveredTypes;
-	private Lazy<Set<MergedAnnotation<Annotation>>> discoveredAnnotations = Lazy.of(this::discoverAnnotations);
 	private BiConsumer<AotRepositoryContext, CodeContribution> moduleContribution;
 
-	public RepositoryBeanContribution(RepositoryBeanContext context, RepositoryInformation repositoryInformation,
-			Collection<Class<?>> discoveredTypes) {
+	public RepositoryBeanContribution(AotRepositoryContext context) {
 
 		this.context = context;
-		this.repositoryInformation = repositoryInformation;
-		this.discoveredTypes = new LinkedHashSet<>(discoveredTypes);
+		this.repositoryInformation = context.getRepositoryInformation();
 	}
 
 	public RepositoryBeanContribution setModuleContribution(
@@ -69,42 +66,13 @@ public class RepositoryBeanContribution implements BeanInstantiationContribution
 		return this;
 	}
 
-	private Set<MergedAnnotation<Annotation>> discoverAnnotations() {
-
-		Set<MergedAnnotation<Annotation>> annotations = new LinkedHashSet<>(discoveredTypes.stream().flatMap(type -> {
-			return TypeUtils.resolveUsedAnnotations(type).stream();
-		}).collect(Collectors.toSet()));
-		annotations.addAll(TypeUtils.resolveUsedAnnotations(repositoryInformation.getRepositoryInterface()));
-		return annotations;
-	}
-
 	@Override
 	public void applyTo(CodeContribution contribution) {
 
 		writeRepositoryInfo(contribution);
 
 		if (moduleContribution != null) {
-			moduleContribution.accept(new AotRepositoryContext() {
-				@Override
-				public RepositoryInformation getRepositoryInformation() {
-					return repositoryInformation;
-				}
-
-				@Override
-				public Set<Class<?>> getResolvedTypes() {
-					return discoveredTypes;
-				}
-
-				@Override
-				public Set<MergedAnnotation<Annotation>> getResolvedAnnotations() {
-					return discoveredAnnotations.get();
-				}
-
-				@Override
-				public String getBasePackage() {
-					return null;
-				}
-			}, contribution);
+			moduleContribution.accept(context, contribution);
 		}
 	}
 
@@ -227,13 +195,5 @@ public class RepositoryBeanContribution implements BeanInstantiationContribution
 
 	public RepositoryInformation getRepositoryInformation() {
 		return repositoryInformation;
-	}
-
-	public Set<Class<?>> getDiscoveredTypes() {
-		return discoveredTypes;
-	}
-
-	public void setDiscoveredTypes(Set<Class<?>> discoveredTypes) {
-		this.discoveredTypes = discoveredTypes;
 	}
 }
