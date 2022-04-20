@@ -241,7 +241,7 @@ public class RepositoryConfigurationDelegate {
 		BeanDefinitionBuilder pp = BeanDefinitionBuilder.rootBeanDefinition(extension.getAotPostProcessor());
 		pp.addPropertyValue("configMap", metadataMap);
 
-		registry.registerBeanDefinition(String.format("data-%s.post-processor", extension.getModuleName()),pp.getBeanDefinition());
+		registry.registerBeanDefinition(String.format("data-%s.post-processor" /* might be duplicate */, extension.getModuleName()),pp.getBeanDefinition());
 
 		// register bean entity registrar
 
