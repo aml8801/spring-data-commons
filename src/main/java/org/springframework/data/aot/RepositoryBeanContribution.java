@@ -17,6 +17,7 @@ package org.springframework.data.aot;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 
 import org.springframework.aop.SpringProxy;
@@ -32,7 +33,6 @@ import org.springframework.data.projection.TargetAware;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.core.RepositoryInformation;
 import org.springframework.data.repository.core.support.RepositoryFragment;
-import org.springframework.data.repository.kotlin.CoroutineCrudRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ClassUtils;
 
@@ -120,10 +120,11 @@ public class RepositoryBeanContribution implements BeanInstantiationContribution
 		}
 
 		// Kotlin
-		if (ClassUtils.isAssignable(CoroutineCrudRepository.class, repositoryInformation.getRepositoryInterface())) {
+		Optional<Class<?>> coroutineRepo = context.resolveType("org.springframework.data.repository.kotlin.CoroutineCrudRepository");
+		if (coroutineRepo.isPresent() && ClassUtils.isAssignable(coroutineRepo.get(), repositoryInformation.getRepositoryInterface())) {
 
 			contribution.runtimeHints().reflection() //
-					.registerTypes(Arrays.asList(TypeReference.of(CoroutineCrudRepository.class),
+					.registerTypes(Arrays.asList(TypeReference.of("org.springframework.data.repository.kotlin.CoroutineCrudRepository"),
 							TypeReference.of(Repository.class), TypeReference.of(Iterable.class),
 							TypeReference.of("kotlinx.coroutines.flow.Flow"), TypeReference.of("kotlin.collections.Iterable"),
 							TypeReference.of("kotlin.Unit"), TypeReference.of("kotlin.Long"), TypeReference.of("kotlin.Boolean")),
