@@ -15,7 +15,9 @@
  */
 package org.springframework.data.aot;
 
+import java.lang.annotation.Annotation;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -30,9 +32,14 @@ import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.generator.AotContributingBeanPostProcessor;
 import org.springframework.beans.factory.support.RootBeanDefinition;
+import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.annotation.MergedAnnotation;
 import org.springframework.core.annotation.SynthesizedAnnotation;
+import org.springframework.core.env.StandardEnvironment;
+import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.data.repository.Repository;
+import org.springframework.data.repository.config.RepositoryConfigurationExtensionSupport;
 import org.springframework.data.repository.config.RepositoryMetadata;
 import org.springframework.data.repository.core.RepositoryInformation;
 import org.springframework.lang.Nullable;
@@ -70,12 +77,17 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 
 		if (!ObjectUtils.isEmpty(configMap)) {
 			if (x.compareAndSet(false, true)) {
-				AotBeanContext beanContext = new AotBeanContext(beanName, beanDefinition, beanFactory);
 				for (RepositoryMetadata<?> metadata : configMap.values()) {
+					Collection<Class<? extends Annotation>> identifyingAnnotations = Collections.emptySet();
+					if (metadata.getConfigurationSource() instanceof RepositoryConfigurationExtensionSupport ces) {
+						identifyingAnnotations = ces.getIdentifyingAnnotations();
+					}
+					AotBeanContext beanContext = new AotBeanContext(metadata.getBasePackages().toSet(),
+							new LinkedHashSet<>(identifyingAnnotations), beanName, beanDefinition, beanFactory);
 					RepositoryInformation repositoryInformation = RepositoryBeanDefinitionReader
 							.readRepositoryInformation(metadata, beanFactory);
 					return new RepositoryBeanContribution(beanContext, repositoryInformation,
-							discoverTypes(repositoryInformation, typeFilter())).setModuleContribution(this::contribute);
+							discoverTypes(beanContext, repositoryInformation, typeFilter())).setModuleContribution(this::contribute);
 				}
 			}
 			return null;
@@ -85,11 +97,12 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 			return null;
 		}
 
-		AotBeanContext beanContext = new AotBeanContext(beanName, beanDefinition, beanFactory);
+		AotBeanContext beanContext = new AotBeanContext(Collections.singleton(beanType.getPackageName()),
+				Collections.emptySet(), beanName, beanDefinition, beanFactory);
 		RepositoryInformation repositoryInformation = RepositoryBeanDefinitionReader.readRepositoryInformation(beanContext);
 
 		return new RepositoryBeanContribution(beanContext, repositoryInformation,
-				discoverTypes(repositoryInformation, typeFilter())).setModuleContribution(this::contribute);
+				discoverTypes(beanContext, repositoryInformation, typeFilter())).setModuleContribution(this::contribute);
 	}
 
 	protected void contribute(AotRepositoryContext ctx, CodeContribution contribution) {
@@ -114,7 +127,8 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 		return type.getPackage().getName().startsWith("org.springframework.data");
 	}
 
-	protected Set<Class<?>> discoverTypes(RepositoryInformation repositoryInformation, Predicate<Class<?>> filter) {
+	protected Set<Class<?>> discoverTypes(AotBeanContext context, RepositoryInformation repositoryInformation,
+			Predicate<Class<?>> filter) {
 
 		Set<Class<?>> types = new LinkedHashSet<>(TypeCollector.inspect(repositoryInformation.getDomainType()).list());
 
@@ -122,6 +136,26 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 				.flatMap(it -> TypeUtils.resolveTypesInSignature(repositoryInformation.getRepositoryInterface(), it).stream())
 				.flatMap(it -> TypeCollector.inspect(it).list().stream()).forEach(types::add);
 
+		if (!context.getIdentifyingAnnotations().isEmpty()) {
+
+			// TODO: move this to an EntityScanner implementation
+			final ClassPathScanningCandidateComponentProvider scanner = new ClassPathScanningCandidateComponentProvider(
+					false);
+			scanner.setEnvironment(new StandardEnvironment());
+			scanner.setResourceLoader(new DefaultResourceLoader(context.getBeanFactory().getBeanClassLoader()));
+			context.getIdentifyingAnnotations().forEach(it -> {
+				scanner.addIncludeFilter(new AnnotationTypeFilter((Class<? extends Annotation>) it));
+			});
+
+			context.getBasePackages().forEach(pkg -> {
+
+				scanner.findCandidateComponents(pkg).forEach(it -> {
+					context.resolveType(it.getBeanClassName()).ifPresent(types::add);
+				});
+			});
+		}
+
+		// context.get
 		return types;
 	}
 

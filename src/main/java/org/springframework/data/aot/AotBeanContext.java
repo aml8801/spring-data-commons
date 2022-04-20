@@ -16,6 +16,7 @@
 package org.springframework.data.aot;
 
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.beans.PropertyValue;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
@@ -31,8 +32,18 @@ import org.springframework.util.ClassUtils;
  * @author Christoph Strobl
  * @since 2022/04
  */
-record AotBeanContext(String beanName, RootBeanDefinition beanDefinition,
-		ConfigurableListableBeanFactory beanFactory) implements RepositoryBeanContext {
+record AotBeanContext(Set<String> basePackages, Set<Class<?>> identifyingAnnotations, String beanName, RootBeanDefinition beanDefinition,
+					  ConfigurableListableBeanFactory beanFactory) implements RepositoryBeanContext {
+
+	@Override
+	public Set<Class<?>> getIdentifyingAnnotations() {
+		return identifyingAnnotations;
+	}
+
+	@Override
+	public Set<String> getBasePackages() {
+		return basePackages;
+	}
 
 	@Override
 	public String getBeanName() {

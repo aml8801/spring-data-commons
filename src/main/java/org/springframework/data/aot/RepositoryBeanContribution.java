@@ -99,6 +99,11 @@ public class RepositoryBeanContribution implements BeanInstantiationContribution
 				public Set<MergedAnnotation<Annotation>> getResolvedAnnotations() {
 					return discoveredAnnotations.get();
 				}
+
+				@Override
+				public String getBasePackage() {
+					return null;
+				}
 			}, contribution);
 		}
 	}

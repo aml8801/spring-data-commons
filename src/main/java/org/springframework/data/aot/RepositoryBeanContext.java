@@ -17,6 +17,7 @@
 package org.springframework.data.aot;
 
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import org.springframework.beans.PropertyValue;
@@ -35,6 +36,10 @@ import org.springframework.util.ObjectUtils;
  * @since 2022/04
  */
 public interface RepositoryBeanContext {
+
+	Set<Class<?>> getIdentifyingAnnotations();
+
+	Set<String> getBasePackages();
 
 	String getBeanName();
 

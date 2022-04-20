@@ -128,7 +128,7 @@ public abstract class RepositoryConfigurationExtensionSupport implements Reposit
 	 * @return
 	 * @since 1.9
 	 */
-	protected Collection<Class<? extends Annotation>> getIdentifyingAnnotations() {
+	public Collection<Class<? extends Annotation>> getIdentifyingAnnotations() {
 		return Collections.emptySet();
 	}
 

@@ -208,6 +208,8 @@ public class RepositoryConfigurationDelegate {
 
 			registry.registerBeanDefinition(beanName, beanDefinition);
 			definitions.add(new BeanComponentDefinition(beanDefinition, beanName));
+
+			//TODO: register the PostProcessor for the beanVia its name here :)
 		}
 
 		potentiallyLazifyRepositories(configurationsByRepositoryName, registry, configurationSource.getBootstrapMode());
@@ -238,8 +240,10 @@ public class RepositoryConfigurationDelegate {
 //			return postProcessor;
 //		}).getBeanDefinition());
 
+		// TODO: AOT Processing -> and move it into the loop + one bean PP per repo one up :)
 		BeanDefinitionBuilder pp = BeanDefinitionBuilder.rootBeanDefinition(extension.getAotPostProcessor());
 		pp.addPropertyValue("configMap", metadataMap);
+
 
 		registry.registerBeanDefinition(String.format("data-%s.post-processor" /* might be duplicate */, extension.getModuleName()),pp.getBeanDefinition());
 

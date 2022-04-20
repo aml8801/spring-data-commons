@@ -26,6 +26,7 @@ import org.springframework.data.repository.core.RepositoryInformation;
  * @since 2022/04
  */
 public interface AotRepositoryContext {
+	String getBasePackage();
 	RepositoryInformation getRepositoryInformation();
 	Set<Class<?>> getResolvedTypes();
 	Set<MergedAnnotation<Annotation>> getResolvedAnnotations();
