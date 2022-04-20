@@ -1,27 +1,11 @@
 /*
- * Copyright 2022. the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-/*
  * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,15 +18,11 @@ package org.springframework.data.aot;
 import java.lang.annotation.Annotation;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.annotation.MergedAnnotation;
-import org.springframework.core.env.StandardEnvironment;
-import org.springframework.core.io.DefaultResourceLoader;
-import org.springframework.core.type.filter.AnnotationTypeFilter;
+import org.springframework.data.aot.TypeScanner.Scanner;
 import org.springframework.data.repository.core.RepositoryInformation;
 import org.springframework.data.util.Lazy;
 
@@ -120,7 +100,6 @@ public class DefaultRepositoryContext implements AotRepositoryContext {
 		this.identifyingAnnotations = identifyingAnnotations;
 	}
 
-
 	protected Set<MergedAnnotation<Annotation>> discoverAnnotations() {
 
 		Set<MergedAnnotation<Annotation>> annotations = new LinkedHashSet<>(getResolvedTypes().stream().flatMap(type -> {
@@ -140,21 +119,9 @@ public class DefaultRepositoryContext implements AotRepositoryContext {
 
 		if (!getIdentifyingAnnotations().isEmpty()) {
 
-			// TODO: move this to an EntityScanner implementation
-			final ClassPathScanningCandidateComponentProvider scanner = new ClassPathScanningCandidateComponentProvider(
-					false);
-			scanner.setEnvironment(new StandardEnvironment());
-			scanner.setResourceLoader(new DefaultResourceLoader(getBeanFactory().getBeanClassLoader()));
-			getIdentifyingAnnotations().forEach(it -> {
-				scanner.addIncludeFilter(new AnnotationTypeFilter((Class<? extends Annotation>) it));
-			});
-
-			getBasePackages().forEach(pkg -> {
-
-				scanner.findCandidateComponents(pkg).forEach(it -> {
-					resolveType(it.getBeanClassName()).ifPresent(types::add);
-				});
-			});
+			Scanner typeScanner = aotContext.getTypeScanner().scanForTypesAnnotatedWith(getIdentifyingAnnotations());
+			Set<Class<?>> classes = typeScanner.scanPackages(getBasePackages());
+			TypeCollector.inspect(classes).list().stream().forEach(types::add);
 		}
 
 		// context.get

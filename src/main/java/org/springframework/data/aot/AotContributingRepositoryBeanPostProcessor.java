@@ -82,17 +82,6 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 			return new RepositoryBeanContribution(ctx).setModuleContribution(this::contribute);
 		}
 
-		if (!ClassUtils.isAssignable(Repository.class, beanDefinition.getTargetType())) {
-			return null;
-		}
-
-		AotBeanContext beanContext = new AotBeanContext(Collections.singleton(beanType.getPackageName()),
-				Collections.emptySet(), beanName, beanDefinition, beanFactory);
-		RepositoryInformation repositoryInformation = RepositoryBeanDefinitionReader.readRepositoryInformation(beanContext);
-
-		// return new RepositoryBeanContribution(beanContext, repositoryInformation,
-		// discoverTypes(beanContext, repositoryInformation, typeFilter())).setModuleContribution(this::contribute);
-
 		return null;
 	}
 
