@@ -30,7 +30,6 @@ import java.lang.annotation.Target;
  * @author Oliver Gierke
  */
 @Documented
-@SpringDataAnnotation
 @Retention(RUNTIME)
 @Target(value = { FIELD, METHOD, ANNOTATION_TYPE })
 public @interface Version {

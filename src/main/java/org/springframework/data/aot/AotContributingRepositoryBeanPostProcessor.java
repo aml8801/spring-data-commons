@@ -30,10 +30,8 @@ import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.generator.AotContributingBeanPostProcessor;
 import org.springframework.beans.factory.support.RootBeanDefinition;
-import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.MergedAnnotation;
 import org.springframework.core.annotation.SynthesizedAnnotation;
-import org.springframework.data.annotation.SpringDataAnnotation;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.config.RepositoryMetadata;
 import org.springframework.data.repository.core.RepositoryInformation;
@@ -97,18 +95,23 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 	protected void contribute(AotRepositoryContext ctx, CodeContribution contribution) {
 
 		ctx.getResolvedTypes().forEach(it -> contributeType(it, contribution));
-		ctx.getResolvedAnnotations().stream().map(MergedAnnotation::getType).filter(it -> {
+		ctx.getResolvedAnnotations().stream() //
+				.filter(AotContributingRepositoryBeanPostProcessor::isSpringDataManagedAnnotation) //
+				.map(MergedAnnotation::getType) //
+				.forEach(it -> contributeType(it, contribution));
+	}
 
-			if (it.getPackage().getName().startsWith("org.springframework.data")) {
-				return true;
-			}
+	protected static boolean isSpringDataManagedAnnotation(MergedAnnotation<?> annotation) {
 
-			if (AnnotatedElementUtils.hasMetaAnnotationTypes(it, SpringDataAnnotation.class)) {
-				return true;
-			}
+		if (isInDataNamespace(annotation.getType())) {
+			return true;
+		}
 
-			return false;
-		}).forEach(it -> contributeType(it, contribution));
+		return annotation.getMetaTypes().stream().anyMatch(AotContributingRepositoryBeanPostProcessor::isInDataNamespace);
+	}
+
+	private static boolean isInDataNamespace(Class<?> type) {
+		return type.getPackage().getName().startsWith("org.springframework.data");
 	}
 
 	protected Set<Class<?>> discoverTypes(RepositoryInformation repositoryInformation, Predicate<Class<?>> filter) {

@@ -158,31 +158,13 @@ public class RepositoryBeanContribution implements BeanInstantiationContribution
 		if (ClassUtils.isAssignable(CoroutineCrudRepository.class, repositoryInformation.getRepositoryInterface())) {
 
 			contribution.runtimeHints().reflection() //
-
-					.registerType(CoroutineCrudRepository.class, hint -> {
-						hint.withMembers(MemberCategory.INTROSPECT_PUBLIC_METHODS);
-					}) //
-					.registerType(Repository.class, hint -> {
-						hint.withMembers(MemberCategory.INTROSPECT_PUBLIC_METHODS);
-					}) //
-					.registerType(Iterable.class, hint -> {
-						hint.withMembers(MemberCategory.INTROSPECT_PUBLIC_METHODS);
-					}) //
-					.registerType(TypeReference.of("kotlinx.coroutines.flow.Flow"), hint -> {
-						hint.withMembers(MemberCategory.INTROSPECT_PUBLIC_METHODS);
-					}) //
-					.registerType(TypeReference.of("kotlin.collections.Iterable"), hint -> {
-						hint.withMembers(MemberCategory.INTROSPECT_PUBLIC_METHODS);
-					}) //
-					.registerType(TypeReference.of("kotlin.Unit"), hint -> {
-						hint.withMembers(MemberCategory.INTROSPECT_PUBLIC_METHODS);
-					}) //
-					.registerType(TypeReference.of("kotlin.Long"), hint -> {
-						hint.withMembers(MemberCategory.INTROSPECT_PUBLIC_METHODS);
-					}) //
-					.registerType(TypeReference.of("kotlin.Boolean"), hint -> {
-						hint.withMembers(MemberCategory.INTROSPECT_PUBLIC_METHODS);
-					});
+					.registerTypes(Arrays.asList(TypeReference.of(CoroutineCrudRepository.class),
+							TypeReference.of(Repository.class), TypeReference.of(Iterable.class),
+							TypeReference.of("kotlinx.coroutines.flow.Flow"), TypeReference.of("kotlin.collections.Iterable"),
+							TypeReference.of("kotlin.Unit"), TypeReference.of("kotlin.Long"), TypeReference.of("kotlin.Boolean")),
+							hint -> {
+								hint.withMembers(MemberCategory.INTROSPECT_PUBLIC_METHODS);
+							});
 		}
 
 		// repository methods

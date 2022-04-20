@@ -29,7 +29,6 @@ import org.springframework.core.annotation.AliasFor;
  * @author Oliver Gierke
  * @author Jon Brisbin
  */
-@SpringDataAnnotation
 @Retention(RetentionPolicy.RUNTIME)
 @Target(value = { FIELD, METHOD, ANNOTATION_TYPE })
 public @interface Reference {

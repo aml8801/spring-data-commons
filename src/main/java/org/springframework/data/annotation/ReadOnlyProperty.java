@@ -27,7 +27,6 @@ import java.lang.annotation.Target;
  * @author Christoph Strobl
  * @since 1.9
  */
-@SpringDataAnnotation
 @Retention(RetentionPolicy.RUNTIME)
 @Target(value = { FIELD, METHOD, ANNOTATION_TYPE })
 public @interface ReadOnlyProperty {

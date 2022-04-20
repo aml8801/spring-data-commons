@@ -29,7 +29,6 @@ import org.springframework.stereotype.Indexed;
  * @author Oliver Gierke
  */
 @Indexed
-@SpringDataAnnotation
 @Retention(RetentionPolicy.RUNTIME)
 @Target(value = { ElementType.TYPE, ElementType.FIELD, ElementType.PARAMETER })
 public @interface Persistent {

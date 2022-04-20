@@ -26,7 +26,6 @@ import java.lang.annotation.Target;
  * @author Oliver Gierke
  * @since 2.1
  */
-@SpringDataAnnotation
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Immutable {

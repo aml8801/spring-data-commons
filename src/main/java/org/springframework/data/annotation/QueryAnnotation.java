@@ -28,7 +28,6 @@ import org.springframework.data.repository.Repository;
  *
  * @author Thomas Darimont
  */
-@SpringDataAnnotation
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.ANNOTATION_TYPE)
 public @interface QueryAnnotation {
