@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.AnnotationFilter;
 import org.springframework.core.annotation.MergedAnnotation;
 import org.springframework.core.annotation.MergedAnnotations;
@@ -80,6 +81,13 @@ public class TypeUtils {
 
 	public static Set<Class<?>> resolveAnnotationTypesFor(AnnotatedElement element) {
 		return resolveAnnotationTypesFor(element, AnnotationFilter.PLAIN);
+	}
+
+	public static boolean isAnnotationFromOrMetaAnnotated(Class<? extends Annotation> annotation, String prefix) {
+		if(annotation.getPackage().getName().startsWith(prefix)) {
+			return true;
+		}
+		return TypeUtils.resolveAnnotationsFor(annotation).anyMatch(it -> it.getType().getPackage().getName().startsWith(prefix));
 	}
 
 	public static boolean hasAnnotatedField(Class<?> type, String annotationName) {

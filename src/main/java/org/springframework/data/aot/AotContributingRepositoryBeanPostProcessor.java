@@ -87,7 +87,11 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 
 	protected void contribute(AotRepositoryContext ctx, CodeContribution contribution) {
 
-		ctx.getResolvedTypes().forEach(it -> contributeType(it, contribution));
+		ctx.getResolvedTypes() //
+				.stream() //
+				.filter(it -> !isJavaOrPrimitiveType(it)) //
+				.forEach(it -> contributeType(it, contribution));
+
 		ctx.getResolvedAnnotations().stream() //
 				.filter(AotContributingRepositoryBeanPostProcessor::isSpringDataManagedAnnotation) //
 				.map(MergedAnnotation::getType) //
@@ -105,6 +109,13 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 
 	private static boolean isInDataNamespace(Class<?> type) {
 		return type.getPackage().getName().startsWith("org.springframework.data");
+	}
+
+	private static boolean isJavaOrPrimitiveType(Class<?> type) {
+		if (TypeUtils.type(type).isPartOf("java") || type.isPrimitive() || ClassUtils.isPrimitiveArray(type)) {
+			return true;
+		}
+		return false;
 	}
 
 	protected void contributeType(Class<?> type, CodeContribution contribution) {
