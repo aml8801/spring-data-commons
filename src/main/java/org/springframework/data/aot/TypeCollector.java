@@ -43,7 +43,7 @@ import org.springframework.util.ReflectionUtils;
  * @author Christoph Strobl
  * @author Sebastien Deleuze
  */
-class TypeCollector {
+public class TypeCollector {
 
 	private static Log logger = LogFactory.getLog(TypeCollector.class);
 

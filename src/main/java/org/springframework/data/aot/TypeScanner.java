@@ -40,15 +40,15 @@ public class TypeScanner {
 		this.classLoader = classLoader;
 	}
 
-	Scanner scanForTypesAnnotatedWith(Class<? extends Annotation>... annotations) {
+	public Scanner scanForTypesAnnotatedWith(Class<? extends Annotation>... annotations) {
 		return scanForTypesAnnotatedWith(Arrays.asList(annotations));
 	}
 
-	Scanner scanForTypesAnnotatedWith(Collection<Class<? extends Annotation>> annotations) {
+	public Scanner scanForTypesAnnotatedWith(Collection<Class<? extends Annotation>> annotations) {
 		return new ScannerImpl().includeTypesAnnotatedWith(annotations);
 	}
 
-	interface Scanner {
+	public interface Scanner {
 
 		default Set<Class<?>> scanPackages(String... packageNames) {
 			return scanPackages(Arrays.asList(packageNames));
