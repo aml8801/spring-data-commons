@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.beans.factory.config.DependencyDescriptor;
 import org.springframework.beans.factory.parsing.BeanComponentDefinition;
@@ -37,6 +38,7 @@ import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.context.annotation.ContextAnnotationAutowireCandidateResolver;
 import org.springframework.context.support.GenericApplicationContext;
+import org.springframework.core.ResolvableType;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.EnvironmentCapable;
 import org.springframework.core.env.StandardEnvironment;
@@ -45,6 +47,9 @@ import org.springframework.core.io.support.SpringFactoriesLoader;
 import org.springframework.core.log.LogMessage;
 import org.springframework.core.metrics.ApplicationStartup;
 import org.springframework.core.metrics.StartupStep;
+import org.springframework.data.aot.ParameterizedTypeMapper;
+import org.springframework.data.repository.Repository;
+import org.springframework.data.repository.core.support.RepositoryFactoryBeanSupport;
 import org.springframework.data.repository.core.support.RepositoryFactorySupport;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -68,7 +73,7 @@ public class RepositoryConfigurationDelegate {
 	private static final String MULTIPLE_MODULES = "Multiple Spring Data modules found, entering strict repository configuration mode!";
 	private static final String NON_DEFAULT_AUTOWIRE_CANDIDATE_RESOLVER = "Non-default AutowireCandidateResolver (%s) detected. Skipping the registration of LazyRepositoryInjectionPointResolver. Lazy repository injection will not be working!";
 
-	static final String FACTORY_BEAN_OBJECT_TYPE = "factoryBeanObjectType";
+	static final String FACTORY_BEAN_OBJECT_TYPE = FactoryBean.OBJECT_TYPE_ATTRIBUTE; //"factoryBeanObjectType";
 
 	private static final Log logger = LogFactory.getLog(RepositoryConfigurationDelegate.class);
 
@@ -189,16 +194,53 @@ public class RepositoryConfigurationDelegate {
 			}
 
 			// xxx
+//			beanDefinition.setAttribute(FACTORY_BEAN_OBJECT_TYPE, configuration.getRepositoryInterface());
 
-			if(ClassUtils.isPresent("org.eclipse.persistence.Version",  resourceLoader.getClassLoader())) {
-				beanDefinition.setAttribute(FACTORY_BEAN_OBJECT_TYPE, configuration.getRepositoryInterface());
-			} else {
+//			if(ClassUtils.isPresent("org.eclipse.persistence.Version",  resourceLoader.getClassLoader())) {
+//				beanDefinition.setAttribute(FACTORY_BEAN_OBJECT_TYPE, configuration.getRepositoryInterface());
+//			} else {
+//
+//				Class repositoryInterfaceType = configuration.getRepositoryInterfaceType(resourceLoader.getClassLoader());
+//				System.out.println("repo interface: " + repositoryInterfaceType);
+//				if(beanDefinition instanceof RootBeanDefinition) {
+//					((RootBeanDefinition)beanDefinition).setTargetType(repositoryInterfaceType);
+//				}
+//			}
+			try {
+				Class<?> repositoryType = ClassUtils.forName(configuration.getRepositoryInterface(), resourceLoader.getClassLoader());
+				Class<?> repoFactoryBean = ClassUtils.forName(configuration.getRepositoryFactoryBeanClassName(), resourceLoader.getClassLoader());
+//				beanDefinition.setAttribute(FACTORY_BEAN_OBJECT_TYPE, repositoryType);
+//				System.out.println("setting attribute: " + FACTORY_BEAN_OBJECT_TYPE + " to " + aClass);
+				if(beanDefinition instanceof RootBeanDefinition rbd) {
+					// move this to another post processor
+					rbd.setTargetType(ResolvableType.forClassWithGenerics(repoFactoryBean, repositoryType, Object.class, Object.class));
+//
+//
+//					ResolvableType resolvableType = ResolvableType.forClass(repositoryType).as(Repository.class);
+//
+//					ResolvableType[] repositoryFactoryBeanGenerics = new ResolvableType[3];
+//					repositoryFactoryBeanGenerics[0] = ResolvableType.forClass(repositoryType);
+//					repositoryFactoryBeanGenerics[1] = ResolvableType.forClass(Object.class); //resolvableType.getGenerics()[0];
+//					repositoryFactoryBeanGenerics[2] = ResolvableType.forClass(Object.class); //resolvableType.getGenerics()[1];
 
-				Class repositoryInterfaceType = configuration.getRepositoryInterfaceType(resourceLoader.getClassLoader());
-				System.out.println("repo interface: " + repositoryInterfaceType);
-				if(beanDefinition instanceof RootBeanDefinition) {
-					((RootBeanDefinition)beanDefinition).setTargetType(repositoryInterfaceType);
+
+
+//					rbd.setTargetType(ResolvableType.forClassWithGenerics(repoFactoryBean, repositoryFactoryBeanGenerics));
+
+//					ResolvableType[] resolvedGenerics = ParameterizedTypeMapper
+//							.of(repoFactoryBean, RepositoryFactoryBeanSupport.class)
+//							.mapGenericTypes(repositoryFactoryBeanGenerics);
+//					rbd.setTargetType(ResolvableType.forClassWithGenerics(repoFactoryBean, resolvedGenerics));
 				}
+
+//					ResolvableType type = ResolvableType.forClass(RepositoryFactoryBeanSupport.class, ClassUtils.forName(extension.getRepositoryFactoryBeanClassName(), resourceLoader.getClassLoader()));
+//					ResolvableType.forClassWithGenerics(ClassUtils)
+//
+//					rbd.setTargetType();
+////					rbd.getMetadataAttribute()
+//				}
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
 			}
 
 			// write bean bean definition to

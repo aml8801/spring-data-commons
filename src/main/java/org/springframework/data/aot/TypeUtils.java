@@ -54,11 +54,15 @@ public class TypeUtils {
 		for (Field field : type.getDeclaredFields()) {
 			annotations.addAll(TypeUtils.resolveAnnotationsFor(field).collect(Collectors.toSet()));
 		}
-		for (Method method : type.getDeclaredMethods()) {
-			annotations.addAll(TypeUtils.resolveAnnotationsFor(method).collect(Collectors.toSet()));
-			for (Parameter parameter : method.getParameters()) {
-				annotations.addAll(TypeUtils.resolveAnnotationsFor(parameter).collect(Collectors.toSet()));
+		try {
+			for (Method method : type.getDeclaredMethods()) {
+				annotations.addAll(TypeUtils.resolveAnnotationsFor(method).collect(Collectors.toSet()));
+				for (Parameter parameter : method.getParameters()) {
+					annotations.addAll(TypeUtils.resolveAnnotationsFor(parameter).collect(Collectors.toSet()));
+				}
 			}
+		} catch (NoClassDefFoundError e) {
+			// ignore an move on
 		}
 		return annotations;
 	}

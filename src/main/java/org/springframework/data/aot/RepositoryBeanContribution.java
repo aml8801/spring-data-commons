@@ -25,6 +25,7 @@ import org.springframework.aop.framework.Advised;
 import org.springframework.aot.generator.CodeContribution;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.TypeReference;
+import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.generator.BeanInstantiationContribution;
 import org.springframework.core.DecoratingProxy;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -70,6 +71,7 @@ public class RepositoryBeanContribution implements BeanInstantiationContribution
 
 	private void writeRepositoryInfo(CodeContribution contribution) {
 
+		//TODO: is this the way?
 		contribution.runtimeHints().reflection() //
 				.registerType(repositoryInformation.getRepositoryInterface(), hint -> {
 					hint.withMembers(MemberCategory.INVOKE_PUBLIC_METHODS);
