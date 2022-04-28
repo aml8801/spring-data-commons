@@ -37,6 +37,8 @@ public class RepositoryBeanDefinitionReader {
 	static RepositoryInformation readRepositoryInformation(RepositoryMetadata metadata,
 			ConfigurableListableBeanFactory beanFactory) {
 
+		// TODO: how to use user defined factory beans?
+
 		DefaultRepositoryMetadata metadata1 = new DefaultRepositoryMetadata(
 				metadata.getRepositoryInterfaceType(beanFactory.getBeanClassLoader()));
 		Class<?> repositoryBaseClass = (Class<?>) metadata.getRepositoryBaseClassName()

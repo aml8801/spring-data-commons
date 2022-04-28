@@ -30,12 +30,13 @@ import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.generator.AotContributingBeanPostProcessor;
 import org.springframework.beans.factory.support.RootBeanDefinition;
+import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.MergedAnnotation;
 import org.springframework.core.annotation.SynthesizedAnnotation;
-import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.config.RepositoryConfigurationExtensionSupport;
 import org.springframework.data.repository.config.RepositoryMetadata;
 import org.springframework.data.repository.core.RepositoryInformation;
+import org.springframework.data.repository.core.support.RepositoryFactoryBeanSupport;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
@@ -53,36 +54,44 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 	@Override
 	public RepositoryBeanContribution contribute(RootBeanDefinition beanDefinition, Class<?> beanType, String beanName) {
 
-		if (!ObjectUtils.isEmpty(configMap) && configMap.containsKey(beanName)) {
-
-			AotContext aotContext = new AotContext() {
-				@Override
-				public ConfigurableListableBeanFactory getBeanFactory() {
-					return beanFactory;
-				}
-			};
-
-			RepositoryMetadata<?> metadata = configMap.get(beanName);
-
-			Set<Class<? extends Annotation>> identifyingAnnotations = Collections.emptySet();
-			if (metadata.getConfigurationSource() instanceof RepositoryConfigurationExtensionSupport ces) {
-				identifyingAnnotations = new LinkedHashSet<>(ces.getIdentifyingAnnotations());
-			}
-
-			RepositoryInformation repositoryInformation = RepositoryBeanDefinitionReader.readRepositoryInformation(metadata,
-					beanFactory);
-
-			DefaultRepositoryContext ctx = new DefaultRepositoryContext();
-			ctx.setAotContext(aotContext);
-			ctx.setBeanName(beanName);
-			ctx.setBasePackages(metadata.getBasePackages().toSet());
-			ctx.setRepositoryInformation(repositoryInformation);
-			ctx.setIdentifyingAnnotations(identifyingAnnotations);
-
-			return new RepositoryBeanContribution(ctx).setModuleContribution(this::contribute);
+		if (ObjectUtils.isEmpty(configMap) || !configMap.containsKey(beanName)) {
+			return null;
 		}
 
-		return null;
+		RepositoryMetadata<?> metadata = configMap.get(beanName);
+		AotContext aotContext = new AotContext() {
+			@Override
+			public ConfigurableListableBeanFactory getBeanFactory() {
+				return beanFactory;
+			}
+		};
+
+		Set<Class<? extends Annotation>> identifyingAnnotations = Collections.emptySet();
+		if (metadata.getConfigurationSource() instanceof RepositoryConfigurationExtensionSupport ces) {
+			identifyingAnnotations = new LinkedHashSet<>(ces.getIdentifyingAnnotations());
+		}
+
+		RepositoryInformation repositoryInformation = RepositoryBeanDefinitionReader.readRepositoryInformation(metadata,
+				beanFactory);
+
+		DefaultRepositoryContext ctx = new DefaultRepositoryContext();
+		ctx.setAotContext(aotContext);
+		ctx.setBeanName(beanName);
+		ctx.setBasePackages(metadata.getBasePackages().toSet());
+		ctx.setRepositoryInformation(repositoryInformation);
+		ctx.setIdentifyingAnnotations(identifyingAnnotations);
+
+		// set the factory bean target type along with required generics
+		beanDefinition.setTargetType(ResolvableType.forClassWithGenerics(
+				ctx.resolveType(metadata.getRepositoryFactoryBeanClassName()).orElse(RepositoryFactoryBeanSupport.class),
+				repositoryInformation.getRepositoryInterface(),
+				Object.class, Object.class));
+
+		// TODO: below might be customizable by the factory bean
+		// repositoryInformation.getRepositoryInterface(), repositoryInformation.getDomainType(),
+		// repositoryInformation.getIdType()));
+
+		return new RepositoryBeanContribution(ctx).setModuleContribution(this::contribute);
 	}
 
 	protected void contribute(AotRepositoryContext ctx, CodeContribution contribution) {
