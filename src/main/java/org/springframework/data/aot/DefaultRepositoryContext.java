@@ -120,7 +120,7 @@ public class DefaultRepositoryContext implements AotRepositoryContext {
 		if (!getIdentifyingAnnotations().isEmpty()) {
 
 			Scanner typeScanner = aotContext.getTypeScanner().scanForTypesAnnotatedWith(getIdentifyingAnnotations());
-			Set<Class<?>> classes = typeScanner.scanPackages(getBasePackages());
+			Set<Class<?>> classes = typeScanner.inPackages(getBasePackages());
 			TypeCollector.inspect(classes).list().stream().forEach(types::add);
 		}
 

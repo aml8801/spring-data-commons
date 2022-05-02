@@ -55,7 +55,7 @@ class DefaultRepositoryInformation extends RepositoryInformationSupport implemen
 	public DefaultRepositoryInformation(RepositoryMetadata metadata, Class<?> repositoryBaseClass,
 			RepositoryComposition composition) {
 
-		super(metadata, repositoryBaseClass);
+		super(() -> metadata, () -> repositoryBaseClass);
 		Assert.notNull(composition, "Repository composition must not be null!");
 
 		this.composition = composition;

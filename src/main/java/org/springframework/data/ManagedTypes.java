@@ -13,15 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.springframework.data;
 
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 /**
  * @author Christoph Strobl
- * @since 2022/04
+ * @since 2022/05
  */
-public interface EntityLookup {
-	void contribute(Consumer<EntityRegistrar> registrar);
+public interface ManagedTypes {
+
+	void forEach(Consumer<Class<?>> action);
+
+	static ManagedTypes of(Iterable<Class<?>> types) {
+		return types::forEach;
+	}
+
+	static ManagedTypes of(Stream<Class<?>> types) {
+		return types::forEach;
+	}
 }

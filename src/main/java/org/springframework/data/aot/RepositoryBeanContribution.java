@@ -25,7 +25,6 @@ import org.springframework.aop.framework.Advised;
 import org.springframework.aot.generator.CodeContribution;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.TypeReference;
-import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.generator.BeanInstantiationContribution;
 import org.springframework.core.DecoratingProxy;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -71,7 +70,7 @@ public class RepositoryBeanContribution implements BeanInstantiationContribution
 
 	private void writeRepositoryInfo(CodeContribution contribution) {
 
-		//TODO: is this the way?
+		// TODO: is this the way?
 		contribution.runtimeHints().reflection() //
 				.registerType(repositoryInformation.getRepositoryInterface(), hint -> {
 					hint.withMembers(MemberCategory.INVOKE_PUBLIC_METHODS);
@@ -122,14 +121,17 @@ public class RepositoryBeanContribution implements BeanInstantiationContribution
 		}
 
 		// Kotlin
-		Optional<Class<?>> coroutineRepo = context.resolveType("org.springframework.data.repository.kotlin.CoroutineCrudRepository");
-		if (coroutineRepo.isPresent() && ClassUtils.isAssignable(coroutineRepo.get(), repositoryInformation.getRepositoryInterface())) {
+		Optional<Class<?>> coroutineRepo = context
+				.resolveType("org.springframework.data.repository.kotlin.CoroutineCrudRepository");
+		if (coroutineRepo.isPresent()
+				&& ClassUtils.isAssignable(coroutineRepo.get(), repositoryInformation.getRepositoryInterface())) {
 
 			contribution.runtimeHints().reflection() //
-					.registerTypes(Arrays.asList(TypeReference.of("org.springframework.data.repository.kotlin.CoroutineCrudRepository"),
-							TypeReference.of(Repository.class), TypeReference.of(Iterable.class),
-							TypeReference.of("kotlinx.coroutines.flow.Flow"), TypeReference.of("kotlin.collections.Iterable"),
-							TypeReference.of("kotlin.Unit"), TypeReference.of("kotlin.Long"), TypeReference.of("kotlin.Boolean")),
+					.registerTypes(
+							Arrays.asList(TypeReference.of("org.springframework.data.repository.kotlin.CoroutineCrudRepository"),
+									TypeReference.of(Repository.class), TypeReference.of(Iterable.class),
+									TypeReference.of("kotlinx.coroutines.flow.Flow"), TypeReference.of("kotlin.collections.Iterable"),
+									TypeReference.of("kotlin.Unit"), TypeReference.of("kotlin.Long"), TypeReference.of("kotlin.Boolean")),
 							hint -> {
 								hint.withMembers(MemberCategory.INTROSPECT_PUBLIC_METHODS);
 							});

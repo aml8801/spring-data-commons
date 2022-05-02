@@ -27,12 +27,16 @@ import org.springframework.aot.hint.MemberCategory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
+import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.generator.AotContributingBeanPostProcessor;
+import org.springframework.beans.factory.support.BeanDefinitionBuilder;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.MergedAnnotation;
 import org.springframework.core.annotation.SynthesizedAnnotation;
+import org.springframework.data.ManagedTypes;
 import org.springframework.data.repository.config.RepositoryConfigurationExtensionSupport;
 import org.springframework.data.repository.config.RepositoryMetadata;
 import org.springframework.data.repository.core.RepositoryInformation;
@@ -59,12 +63,6 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 		}
 
 		RepositoryMetadata<?> metadata = configMap.get(beanName);
-		AotContext aotContext = new AotContext() {
-			@Override
-			public ConfigurableListableBeanFactory getBeanFactory() {
-				return beanFactory;
-			}
-		};
 
 		Set<Class<? extends Annotation>> identifyingAnnotations = Collections.emptySet();
 		if (metadata.getConfigurationSource() instanceof RepositoryConfigurationExtensionSupport ces) {
@@ -75,21 +73,37 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 				beanFactory);
 
 		DefaultRepositoryContext ctx = new DefaultRepositoryContext();
-		ctx.setAotContext(aotContext);
+		ctx.setAotContext(() -> beanFactory);
 		ctx.setBeanName(beanName);
 		ctx.setBasePackages(metadata.getBasePackages().toSet());
 		ctx.setRepositoryInformation(repositoryInformation);
 		ctx.setIdentifyingAnnotations(identifyingAnnotations);
 
-		// set the factory bean target type along with required generics
-		beanDefinition.setTargetType(ResolvableType.forClassWithGenerics(
-				ctx.resolveType(metadata.getRepositoryFactoryBeanClassName()).orElse(RepositoryFactoryBeanSupport.class),
-				repositoryInformation.getRepositoryInterface(),
-				Object.class, Object.class));
+		/* TODO: contribute ManagedTypesBean maybe based on the config */
+		if (!ObjectUtils.isEmpty(beanFactory.getBeanNamesForType(ManagedTypes.class))
+				&& beanFactory instanceof DefaultListableBeanFactory bf) {
+			Set<Class<?>> classes = new TypeScanner(bf.getBeanClassLoader()).scanForTypesAnnotatedWith(identifyingAnnotations)
+					.inPackages(ctx.getBasePackages());
+			BeanDefinitionBuilder builder = BeanDefinitionBuilder.rootBeanDefinition(ManagedTypes.class)
+					.setFactoryMethod("of").addConstructorArgValue(classes);
+			bf.registerBeanDefinition(String.format("%s.managed-types", beanName), builder.getBeanDefinition());
+		}
 
-		// TODO: below might be customizable by the factory bean
-		// repositoryInformation.getRepositoryInterface(), repositoryInformation.getDomainType(),
-		// repositoryInformation.getIdType()));
+		/*
+		 * Help the AOT processing render the FactoryBean<T> type correctly that is used to tell the outcome of the FB.
+		 * We just need to set the target repo type of the RepositoryFactoryBeanSupport while keeping the actual ID and DomainType set to object.
+		 * If the generics do not match we do not try to resolve and remap them, but rather set the ObjectType attribute.
+		 */
+		ResolvableType resolvedFactoryBean = ResolvableType.forClass(
+				ctx.resolveType(metadata.getRepositoryFactoryBeanClassName()).orElse(RepositoryFactoryBeanSupport.class));
+		if (resolvedFactoryBean.getGenerics().length == 3) {
+			beanDefinition.setTargetType(ResolvableType.forClassWithGenerics(
+					ctx.resolveType(metadata.getRepositoryFactoryBeanClassName()).orElse(RepositoryFactoryBeanSupport.class),
+					repositoryInformation.getRepositoryInterface(), Object.class, Object.class));
+		} else {
+			beanDefinition.setTargetType(resolvedFactoryBean);
+			beanDefinition.setAttribute(FactoryBean.OBJECT_TYPE_ATTRIBUTE, repositoryInformation.getRepositoryInterface());
+		}
 
 		return new RepositoryBeanContribution(ctx).setModuleContribution(this::contribute);
 	}

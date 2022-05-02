@@ -30,7 +30,6 @@ import org.springframework.util.ClassUtils;
 
 /**
  * @author Christoph Strobl
- * @since 2022/04
  */
 public class TypeScanner {
 
@@ -38,6 +37,10 @@ public class TypeScanner {
 
 	public TypeScanner(ClassLoader classLoader) {
 		this.classLoader = classLoader;
+	}
+
+	static TypeScanner scanner(ClassLoader classLoader) {
+		return new TypeScanner(classLoader);
 	}
 
 	public Scanner scanForTypesAnnotatedWith(Class<? extends Annotation>... annotations) {
@@ -50,11 +53,11 @@ public class TypeScanner {
 
 	public interface Scanner {
 
-		default Set<Class<?>> scanPackages(String... packageNames) {
-			return scanPackages(Arrays.asList(packageNames));
+		default Set<Class<?>> inPackages(String... packageNames) {
+			return inPackages(Arrays.asList(packageNames));
 		}
 
-		Set<Class<?>> scanPackages(Collection<String> packageNames);
+		Set<Class<?>> inPackages(Collection<String> packageNames);
 	}
 
 	class ScannerImpl implements Scanner {
@@ -74,7 +77,7 @@ public class TypeScanner {
 		}
 
 		@Override
-		public Set<Class<?>> scanPackages(Collection<String> packageNames) {
+		public Set<Class<?>> inPackages(Collection<String> packageNames) {
 
 			Set<Class<?>> types = new LinkedHashSet<>();
 

@@ -19,6 +19,7 @@ import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.springframework.data.repository.core.RepositoryInformation;
 import org.springframework.data.repository.core.RepositoryInformationSupport;
@@ -32,10 +33,10 @@ import org.springframework.lang.Nullable;
  */
 public class AotRepositoryInformation extends RepositoryInformationSupport implements RepositoryInformation {
 
-	private final Collection<RepositoryFragment<?>> fragments;
+	private final Supplier<Collection<RepositoryFragment<?>>> fragments;
 
-	AotRepositoryInformation(RepositoryMetadata repositoryMetadata, Class<?> repositoryBaseClass,
-			Collection<RepositoryFragment<?>> fragments) {
+	AotRepositoryInformation(Supplier<RepositoryMetadata> repositoryMetadata, Supplier<Class<?>> repositoryBaseClass,
+			Supplier<Collection<RepositoryFragment<?>>> fragments) {
 
 		super(repositoryMetadata, repositoryBaseClass);
 		this.fragments = fragments;
@@ -67,7 +68,7 @@ public class AotRepositoryInformation extends RepositoryInformationSupport imple
 	 */
 	@Nullable
 	public Set<RepositoryFragment<?>> getFragments() {
-		return new LinkedHashSet<>(fragments);
+		return new LinkedHashSet<>(fragments.get());
 	}
 
 }

@@ -22,10 +22,11 @@ import java.lang.reflect.Modifier;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.data.annotation.QueryAnnotation;
-import org.springframework.data.repository.core.support.RepositoryFragment;
+import org.springframework.data.util.Lazy;
 import org.springframework.data.util.Streamable;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.util.Assert;
@@ -37,16 +38,16 @@ import org.springframework.util.ClassUtils;
  */
 public abstract class RepositoryInformationSupport implements RepositoryInformation {
 
-	private final RepositoryMetadata metadata;
-	private final Class<?> repositoryBaseClass;
+	private final Supplier<RepositoryMetadata> metadata;
+	private final Supplier<Class<?>> repositoryBaseClass;
 
-	public RepositoryInformationSupport(RepositoryMetadata metadata, Class<?> repositoryBaseClass) {
+	public RepositoryInformationSupport(Supplier<RepositoryMetadata> metadata, Supplier<Class<?>> repositoryBaseClass) {
 
 		Assert.notNull(metadata, "Repository metadata must not be null!");
 		Assert.notNull(repositoryBaseClass, "Repository base class must not be null!");
 
-		this.metadata = metadata;
-		this.repositoryBaseClass = repositoryBaseClass;
+		this.metadata = Lazy.of(metadata);
+		this.repositoryBaseClass = Lazy.of(repositoryBaseClass);
 	}
 
 	@Override
@@ -64,54 +65,58 @@ public abstract class RepositoryInformationSupport implements RepositoryInformat
 		return Streamable.of(Collections.unmodifiableSet(result));
 	}
 
+	private RepositoryMetadata getMetadata() {
+		return metadata.get();
+	}
+
 	@Override
 	public Class<?> getIdType() {
-		return metadata.getIdType();
+		return getMetadata().getIdType();
 	}
 
 	@Override
 	public Class<?> getDomainType() {
-		return metadata.getDomainType();
+		return getMetadata().getDomainType();
 	}
 
 	@Override
 	public Class<?> getRepositoryInterface() {
-		return metadata.getRepositoryInterface();
+		return getMetadata().getRepositoryInterface();
 	}
 
 	@Override
 	public TypeInformation<?> getReturnType(Method method) {
-		return metadata.getReturnType(method);
+		return getMetadata().getReturnType(method);
 	}
 
 	@Override
 	public Class<?> getReturnedDomainClass(Method method) {
-		return metadata.getReturnedDomainClass(method);
+		return getMetadata().getReturnedDomainClass(method);
 	}
 
 	@Override
 	public CrudMethods getCrudMethods() {
-		return metadata.getCrudMethods();
+		return getMetadata().getCrudMethods();
 	}
 
 	@Override
 	public boolean isPagingRepository() {
-		return metadata.isPagingRepository();
+		return getMetadata().isPagingRepository();
 	}
 
 	@Override
 	public Set<Class<?>> getAlternativeDomainTypes() {
-		return metadata.getAlternativeDomainTypes();
+		return getMetadata().getAlternativeDomainTypes();
 	}
 
 	@Override
 	public boolean isReactiveRepository() {
-		return metadata.isReactiveRepository();
+		return getMetadata().isReactiveRepository();
 	}
 
 	@Override
 	public Class<?> getRepositoryBaseClass() {
-		return repositoryBaseClass;
+		return repositoryBaseClass.get();
 	}
 
 	@Override
@@ -121,12 +126,12 @@ public abstract class RepositoryInformationSupport implements RepositoryInformat
 
 	@Override
 	public TypeInformation<?> getDomainTypeInformation() {
-		return metadata.getDomainTypeInformation();
+		return getMetadata().getDomainTypeInformation();
 	}
 
 	@Override
 	public TypeInformation<?> getIdTypeInformation() {
-		return metadata.getIdTypeInformation();
+		return getMetadata().getIdTypeInformation();
 	}
 
 	@Override

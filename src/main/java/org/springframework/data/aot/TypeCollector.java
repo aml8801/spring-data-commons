@@ -36,6 +36,7 @@ import java.util.function.Predicate;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.core.ResolvableType;
+import org.springframework.data.util.Lazy;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.ReflectionUtils;
 
@@ -195,8 +196,10 @@ public class TypeCollector {
 
 		private TypeCollector typeCollector;
 		private final Iterable<Class<?>> roots;
+		private final Lazy<List<Class<?>>> reachableTypes = Lazy.of(this::collect);
 
 		public ReachableTypes(TypeCollector typeCollector, Iterable<Class<?>> roots) {
+
 			this.typeCollector = typeCollector;
 			this.roots = roots;
 		}
@@ -206,6 +209,10 @@ public class TypeCollector {
 		}
 
 		public List<Class<?>> list() {
+			return reachableTypes.get();
+		}
+
+		private List<Class<?>> collect() {
 			List<Class<?>> target = new ArrayList<>();
 			forEach(it -> target.add(it.toClass()));
 			return target;

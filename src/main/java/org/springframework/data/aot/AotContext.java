@@ -15,7 +15,10 @@
  */
 package org.springframework.data.aot;
 
+import java.lang.annotation.Annotation;
+import java.util.Collection;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
@@ -28,8 +31,12 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
 
 /**
+ * The context in which the AOT processing happens. Grants access to the {@link ConfigurableListableBeanFactory
+ * beanFactory} and {@link ClassLoader}. Holds a few convenience methods to check if a type
+ * {@link #isTypePresent(String) is present} and allows resolution of them. <strong>WARNING:</strong> Unstable internal
+ * API!
+ *
  * @author Christoph Strobl
- * @since 2022/04
  */
 public interface AotContext {
 
@@ -47,21 +54,25 @@ public interface AotContext {
 		return new TypeScanner(getClassLoader());
 	}
 
+	default Set<Class<?>> scanPackageForTypes(Collection<Class<? extends Annotation>> identifyingAnnotations,
+			Collection<String> packageNames) {
+		return getTypeScanner().scanForTypesAnnotatedWith(identifyingAnnotations).inPackages(packageNames);
+	}
+
 	default Optional<Class<?>> resolveType(String typeName) {
 
 		if (!isTypePresent(typeName)) {
 			return Optional.empty();
 		}
-		try {
-			return Optional.of(resolveRequiredType(typeName));
-		} catch (ClassNotFoundException e) {
-			// just do nothing
-		}
-		return Optional.empty();
+		return Optional.of(resolveRequiredType(typeName));
 	}
 
-	default Class<?> resolveRequiredType(String typeName) throws ClassNotFoundException {
-		return ClassUtils.forName(typeName, getClassLoader());
+	default Class<?> resolveRequiredType(String typeName) throws TypeNotPresentException {
+		try {
+			return ClassUtils.forName(typeName, getClassLoader());
+		} catch (ClassNotFoundException e) {
+			throw new TypeNotPresentException(typeName, e);
+		}
 	}
 
 	@Nullable
@@ -86,15 +97,24 @@ public interface AotContext {
 		return getBeanFactory().isFactoryBean(beanName);
 	}
 
-	default void ifTransactionManagerPresent(Consumer<String[]> beanNamesConsumer) {
+	default boolean isTransactionManagerPresent() {
 
-		org.springframework.data.repository.util.ClassUtils.ifPresent("org.springframework.transaction.TransactionManager",
-				getBeanFactory().getBeanClassLoader(), it -> {
-					String[] txMgrBeanNames = getBeanFactory().getBeanNamesForType(it);
-					if (!ObjectUtils.isEmpty(txMgrBeanNames)) {
-						beanNamesConsumer.accept(txMgrBeanNames);
-					}
-				});
+		return resolveType("org.springframework.transaction.TransactionManager") //
+				.map(it -> !ObjectUtils.isEmpty(getBeanFactory().getBeanNamesForType(it))) //
+				.orElse(false);
 	}
 
+	default void ifTypePresent(String typeName, Consumer<Class<?>> action) {
+		resolveType(typeName).ifPresent(action);
+	}
+
+	default void ifTransactionManagerPresent(Consumer<String[]> beanNamesConsumer) {
+
+		ifTypePresent("org.springframework.transaction.TransactionManager", txMgrType -> {
+			String[] txMgrBeanNames = getBeanFactory().getBeanNamesForType(txMgrType);
+			if (!ObjectUtils.isEmpty(txMgrBeanNames)) {
+				beanNamesConsumer.accept(txMgrBeanNames);
+			}
+		});
+	}
 }

@@ -190,13 +190,6 @@ public class RepositoryConfigurationDelegate {
 			metadataMap.put(beanName, repositoryMetadata);
 
 			beanDefinition.setAttribute(FACTORY_BEAN_OBJECT_TYPE, configuration.getRepositoryInterface());
-
-			// TODO: can we safely resolve the factory bean target type
-			/*
-			   Class<?> targetType = ResolvableType.forClassWithGenerics(resolveType(repositoryMetadata.getRepositoryFactoryBeanClassName()), repositoryInformation.getRepositoryInterface(), repositoryInformation.getDomainType(), repositoryInformation.getIdType()));
-			   factoryBean.setTargetType(targetType);
-			 */
-
 			registry.registerBeanDefinition(beanName, beanDefinition);
 			definitions.add(new BeanComponentDefinition(beanDefinition, beanName));
 		}
@@ -214,26 +207,12 @@ public class RepositoryConfigurationDelegate {
 							watch.getLastTaskTimeMillis(), configurations.size(), extension.getModuleName()));
 		}
 
-		// write out the definitions to the registered post processor.
-		// check module specific configuration
-		// registry.isBeanNameInUse() to check for duplicates - merge them into one.
-
-		// registry.registerBeanDefinition("data.post-processor",
-		// BeanDefinitionBuilder.rootBeanDefinition(extension.aotPostProcessor(), () -> {
-		// AotContributingRepositoryBeanPostProcessor postProcessor = new AotContributingRepositoryBeanPostProcessor();
-		// postProcessor.setConfigMap(metadataMap);
-		// return postProcessor;
-		// }).getBeanDefinition());
-
-		// TODO: AOT Processing -> and move it into the loop + one bean PP per repo one up :)
+		// TODO: AOT Processing -> guard this one with a flag so it's not always present
 		BeanDefinitionBuilder pp = BeanDefinitionBuilder.rootBeanDefinition(extension.getAotPostProcessor());
 		pp.addPropertyValue("configMap", metadataMap);
-
 		registry.registerBeanDefinition(
 				String.format("data-%s.post-processor" /* might be duplicate */, extension.getModuleName()),
 				pp.getBeanDefinition());
-
-		// register bean entity registrar
 
 		return definitions;
 	}

@@ -25,8 +25,10 @@ import org.springframework.aop.SpringProxy;
 import org.springframework.aop.framework.Advised;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.RootBeanDefinition;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.DecoratingProxy;
+import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.SynthesizedAnnotation;
 import org.springframework.data.annotation.QueryAnnotation;
 import org.springframework.data.aot.sample.ConfigWithCustomImplementation;
@@ -36,12 +38,16 @@ import org.springframework.data.aot.sample.ConfigWithQueryMethods.CustomQuery;
 import org.springframework.data.aot.sample.ConfigWithQueryMethods.ProjectionInterface;
 import org.springframework.data.aot.sample.ReactiveConfig;
 import org.springframework.data.aot.sample.RepositoryConfigWithCustomBaseClass;
+import org.springframework.data.aot.sample.RepositoryConfigWithCustomFactoryBeanBaseClass;
+import org.springframework.data.aot.sample.RepositoryConfigWithCustomFactoryBeanBaseClass.FixedFactoryRepository;
 import org.springframework.data.aot.sample.SimpleCrudRepository;
 import org.springframework.data.aot.sample.SimpleTxComponentCrudRepository;
 import org.springframework.data.aot.sample.SimpleTxCrudRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.repository.PagingAndSortingRepository;
 import org.springframework.data.repository.Repository;
+import org.springframework.data.repository.core.support.DummyRepositoryFactoryBean;
+import org.springframework.data.repository.core.support.RepositoryFactoryBeanSupport;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.repository.reactive.ReactiveSortingRepository;
 import org.springframework.transaction.interceptor.TransactionalProxy;
@@ -265,9 +271,23 @@ public class AotContributingRepositoryBeanPostProcessorTests {
 				});
 	}
 
-	BeanContributionBuilder computeConfiguration(Class<?> configuration) {
+//
+//	@Test
+//	void resolvesCustomRepoFactoryTargetType() {
+//
+//		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
+//
+//		computeConfiguration(RepositoryConfigWithCustomFactoryBeanBaseClass.class, new AnnotationConfigApplicationContext()).forRepository(FixedFactoryRepository.class);
+//
+//		String repoBeanName = ctx.getBeanNamesForType(FixedFactoryRepository.class)[0];
+//		BeanDefinition beanDefinition = ctx.getBeanDefinition(repoBeanName);
+//
+//		ResolvableType resolvableType = beanDefinition.getResolvableType();
+//		System.out.println("resolvableType: " + resolvableType);
+//	}
 
-		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
+	BeanContributionBuilder computeConfiguration(Class<?> configuration, AnnotationConfigApplicationContext ctx) {
+
 		ctx.register(configuration);
 		ctx.refreshForAotProcessing();
 
@@ -288,6 +308,10 @@ public class AotContributingRepositoryBeanPostProcessorTests {
 
 			return postProcessor.contribute((RootBeanDefinition) beanDefinition, it, beanName);
 		};
+	}
+
+	BeanContributionBuilder computeConfiguration(Class<?> configuration) {
+		return computeConfiguration(configuration, new AnnotationConfigApplicationContext());
 	}
 
 	interface BeanContributionBuilder {

@@ -23,14 +23,36 @@ import org.springframework.data.repository.core.RepositoryInformation;
 
 /**
  * @author Christoph Strobl
- * @since 2022/04
  */
 public interface AotRepositoryContext extends AotContext {
 
+	/**
+	 * @return the bean name of the repository / factory bean
+	 */
 	String getBeanName();
+
+	/**
+	 * @return base packages to look for repositories.
+	 */
 	Set<String> getBasePackages();
+
+	/**
+	 * @return metadata about the repository itself
+	 */
 	RepositoryInformation getRepositoryInformation();
+
+	/**
+	 * @return the {@link Annotation} types used to identify domain types.
+	 */
 	Set<Class<? extends Annotation>> getIdentifyingAnnotations();
+
+	/**
+	 * @return all types reachable from the repository.
+	 */
 	Set<Class<?>> getResolvedTypes();
+
+	/**
+	 * @return all annotations reachable from the repository.
+	 */
 	Set<MergedAnnotation<Annotation>> getResolvedAnnotations();
 }
