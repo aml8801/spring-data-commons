@@ -53,14 +53,6 @@ public interface RepositoryConfiguration<T extends RepositoryConfigurationSource
 	 */
 	String getRepositoryInterface();
 
-	default Class getRepositoryInterfaceType(ClassLoader classLoader) {
-		try {
-			return Class.forName(getRepositoryInterface());
-		} catch (ClassNotFoundException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
 	/**
 	 * Returns the key to resolve a {@link QueryLookupStrategy} from eventually.
 	 *

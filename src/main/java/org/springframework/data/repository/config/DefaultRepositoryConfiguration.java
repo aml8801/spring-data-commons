@@ -75,16 +75,6 @@ public class DefaultRepositoryConfiguration<T extends RepositoryConfigurationSou
 		return ConfigurationUtils.getRequiredBeanClassName(definition);
 	}
 
-	@Override
-	public Class getRepositoryInterfaceType(ClassLoader classLoader) {
-		try {
-			return ClassUtils.forName(getRepositoryInterface(), classLoader);
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
-
 	public RepositoryConfigurationSource getConfigSource() {
 		return configurationSource;
 	}
