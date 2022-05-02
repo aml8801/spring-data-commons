@@ -154,7 +154,9 @@ public class TypeUtils {
 	}
 
 	private static void resolveTypesInSignature(ResolvableType current, Set<Class<?>> signatures) {
-		if (ResolvableType.NONE.equals(current) || ObjectUtils.nullSafeEquals(Void.TYPE, current.getType())) {
+
+		if (ResolvableType.NONE.equals(current) || ObjectUtils.nullSafeEquals(Void.TYPE, current.getType())
+				|| ObjectUtils.nullSafeEquals(Object.class, current.getType())) {
 			return;
 		}
 		if (signatures.contains(current.toClass())) {
