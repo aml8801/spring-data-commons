@@ -29,6 +29,7 @@ import org.springframework.data.aot.AotContributingRepositoryBeanPostProcessor;
  *
  * @see RepositoryConfigurationExtensionSupport
  * @author Oliver Gierke
+ * @author Christoph Strobl
  */
 public interface RepositoryConfigurationExtension {
 
@@ -67,6 +68,11 @@ public interface RepositoryConfigurationExtension {
 	 */
 	String getRepositoryFactoryBeanClassName();
 
+	/**
+	 * @return the {@link AotContributingBeanPostProcessor} type responsible for contributing AOT/native configuration.
+	 *         Defaults to {@link AotContributingRepositoryBeanPostProcessor}. Must not be {@literal null}
+	 * @since 3.0
+	 */
 	default Class<? extends AotContributingBeanPostProcessor> getAotPostProcessor() {
 		return AotContributingRepositoryBeanPostProcessor.class;
 	}

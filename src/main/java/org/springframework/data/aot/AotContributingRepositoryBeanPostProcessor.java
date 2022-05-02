@@ -44,10 +44,10 @@ import org.springframework.data.repository.core.support.RepositoryFactoryBeanSup
 import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
+import org.springframework.util.StringUtils;
 
 /**
  * @author Christoph Strobl
- * @since 2022/03e
  */
 public class AotContributingRepositoryBeanPostProcessor implements AotContributingBeanPostProcessor, BeanFactoryAware {
 
@@ -65,8 +65,10 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 		RepositoryMetadata<?> metadata = configMap.get(beanName);
 
 		Set<Class<? extends Annotation>> identifyingAnnotations = Collections.emptySet();
+		String moduleName = null;
 		if (metadata.getConfigurationSource() instanceof RepositoryConfigurationExtensionSupport ces) {
 			identifyingAnnotations = new LinkedHashSet<>(ces.getIdentifyingAnnotations());
+			moduleName = ces.getModuleName();
 		}
 
 		RepositoryInformation repositoryInformation = RepositoryBeanDefinitionReader.readRepositoryInformation(metadata,
@@ -82,11 +84,14 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 		/* TODO: contribute ManagedTypesBean maybe based on the config */
 		if (!ObjectUtils.isEmpty(beanFactory.getBeanNamesForType(ManagedTypes.class))
 				&& beanFactory instanceof DefaultListableBeanFactory bf) {
+
 			Set<Class<?>> classes = new TypeScanner(bf.getBeanClassLoader()).scanForTypesAnnotatedWith(identifyingAnnotations)
 					.inPackages(ctx.getBasePackages());
 			BeanDefinitionBuilder builder = BeanDefinitionBuilder.rootBeanDefinition(ManagedTypes.class)
 					.setFactoryMethod("of").addConstructorArgValue(classes);
-			bf.registerBeanDefinition(String.format("%s.managed-types", beanName), builder.getBeanDefinition());
+			bf.registerBeanDefinition(
+					String.format("%s.managed-types", StringUtils.hasText(moduleName) ? moduleName : beanName),
+					builder.getBeanDefinition());
 		}
 
 		/*

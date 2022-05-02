@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 the original author or authors.
+ * Copyright 2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,27 +16,25 @@
 package org.springframework.data.aot.sample;
 
 import org.springframework.context.annotation.ComponentScan.Filter;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
-import org.springframework.data.aot.sample.RepositoryConfigWithCustomFactoryBeanBaseClass.MyFixedRepoFactory;
+import org.springframework.data.aot.sample.ConfigWithSimpleCrudRepository.MyRepo;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.config.EnableRepositories;
-import org.springframework.data.repository.core.support.DummyRepositoryFactoryBean;
 
 /**
  * @author Christoph Strobl
  */
-@Configuration
-@EnableRepositories(repositoryFactoryBeanClass = MyFixedRepoFactory.class, considerNestedRepositories = true,
-		includeFilters = { @Filter(type = FilterType.REGEX, pattern = ".*FixedFactoryRepository") })
-public class RepositoryConfigWithCustomFactoryBeanBaseClass {
+@EnableRepositories(includeFilters = { @Filter(type = FilterType.ASSIGNABLE_TYPE, value = MyRepo.class) },
+		basePackageClasses = ConfigWithSimpleCrudRepository.class, considerNestedRepositories = true)
+public class ConfigWithSimpleCrudRepository {
 
-	public interface FixedFactoryRepository extends CrudRepository<Person, String> {
+	public interface MyRepo extends CrudRepository<Person, String> {
 
 	}
 
 	public static class Person {
 
+		@javax.annotation.Nullable
 		Address address;
 
 	}
@@ -45,10 +43,4 @@ public class RepositoryConfigWithCustomFactoryBeanBaseClass {
 		String street;
 	}
 
-	public static class MyFixedRepoFactory extends DummyRepositoryFactoryBean<FixedFactoryRepository, Person, String> {
-
-		public MyFixedRepoFactory(Class<? extends FixedFactoryRepository> repositoryInterface) {
-			super(FixedFactoryRepository.class);
-		}
-	}
 }

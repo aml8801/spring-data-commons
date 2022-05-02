@@ -15,20 +15,23 @@
  */
 package org.springframework.data.aot.sample;
 
+import org.mockito.Mockito;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan.Filter;
 import org.springframework.context.annotation.FilterType;
-import org.springframework.data.aot.sample.SimpleCrudRepository.MyRepo;
+import org.springframework.data.aot.sample.ConfigWithTransactionManagerPresent.MyTxRepo;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.config.EnableRepositories;
+import org.springframework.transaction.TransactionManager;
 
 /**
  * @author Christoph Strobl
  */
-@EnableRepositories(includeFilters = { @Filter(type = FilterType.ASSIGNABLE_TYPE, value = MyRepo.class) },
-		basePackageClasses = SimpleCrudRepository.class, considerNestedRepositories = true)
-public class SimpleCrudRepository {
+@EnableRepositories(includeFilters = { @Filter(type = FilterType.ASSIGNABLE_TYPE, value = MyTxRepo.class) },
+		basePackageClasses = ConfigWithTransactionManagerPresent.class, considerNestedRepositories = true)
+public class ConfigWithTransactionManagerPresent {
 
-	public interface MyRepo extends CrudRepository<Person, String> {
+	public interface MyTxRepo extends CrudRepository<Person, String> {
 
 	}
 
@@ -40,6 +43,11 @@ public class SimpleCrudRepository {
 
 	public static class Address {
 		String street;
+	}
+
+	@Bean
+	TransactionManager txManager() {
+		return Mockito.mock(TransactionManager.class);
 	}
 
 }

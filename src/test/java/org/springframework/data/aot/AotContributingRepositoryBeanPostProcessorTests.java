@@ -25,111 +25,113 @@ import org.springframework.aop.SpringProxy;
 import org.springframework.aop.framework.Advised;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.RootBeanDefinition;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.DecoratingProxy;
-import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.SynthesizedAnnotation;
 import org.springframework.data.annotation.QueryAnnotation;
 import org.springframework.data.aot.sample.ConfigWithCustomImplementation;
+import org.springframework.data.aot.sample.ConfigWithCustomRepositoryBaseClass;
 import org.springframework.data.aot.sample.ConfigWithFragments;
 import org.springframework.data.aot.sample.ConfigWithQueryMethods;
-import org.springframework.data.aot.sample.ConfigWithQueryMethods.CustomQuery;
 import org.springframework.data.aot.sample.ConfigWithQueryMethods.ProjectionInterface;
+import org.springframework.data.aot.sample.ConfigWithSimpleCrudRepository;
+import org.springframework.data.aot.sample.ConfigWithTransactionManagerPresent;
+import org.springframework.data.aot.sample.ConfigWithTransactionManagerPresentAndAtComponentAnnotatedRepoisoty;
 import org.springframework.data.aot.sample.ReactiveConfig;
-import org.springframework.data.aot.sample.RepositoryConfigWithCustomBaseClass;
-import org.springframework.data.aot.sample.RepositoryConfigWithCustomFactoryBeanBaseClass;
-import org.springframework.data.aot.sample.RepositoryConfigWithCustomFactoryBeanBaseClass.FixedFactoryRepository;
-import org.springframework.data.aot.sample.SimpleCrudRepository;
-import org.springframework.data.aot.sample.SimpleTxComponentCrudRepository;
-import org.springframework.data.aot.sample.SimpleTxCrudRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.repository.PagingAndSortingRepository;
 import org.springframework.data.repository.Repository;
-import org.springframework.data.repository.core.support.DummyRepositoryFactoryBean;
-import org.springframework.data.repository.core.support.RepositoryFactoryBeanSupport;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.repository.reactive.ReactiveSortingRepository;
 import org.springframework.transaction.interceptor.TransactionalProxy;
 
 /**
  * @author Christoph Strobl
- * @since 2022/04
  */
 public class AotContributingRepositoryBeanPostProcessorTests {
 
-	@Test
+	@Test // GH-2593
 	void simpleRepositoryNoTxManagerNoKotlinNoReactiveNoComponent() {
 
-		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(SimpleCrudRepository.class)
-				.forRepository(SimpleCrudRepository.MyRepo.class);
+		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(ConfigWithSimpleCrudRepository.class)
+				.forRepository(ConfigWithSimpleCrudRepository.MyRepo.class);
 
 		assertThatContribution(repositoryBeanContribution) //
-				.targetRepositoryTypeIs(SimpleCrudRepository.MyRepo.class) //
+				.targetRepositoryTypeIs(ConfigWithSimpleCrudRepository.MyRepo.class) //
 				.hasNoFragments() //
 				.codeContributionSatisfies(contribution -> { //
-					contribution.contributesReflectionFor(SimpleCrudRepository.MyRepo.class) // repository interface
+					contribution.contributesReflectionFor(ConfigWithSimpleCrudRepository.MyRepo.class) // repository interface
 							.contributesReflectionFor(PagingAndSortingRepository.class) // base repository
-							.contributesReflectionFor(SimpleCrudRepository.Person.class) // repository domain type
-							.contributesJdkProxy(SimpleCrudRepository.MyRepo.class, SpringProxy.class, Advised.class,
+							.contributesReflectionFor(ConfigWithSimpleCrudRepository.Person.class) // repository domain type
+							.contributesJdkProxy(ConfigWithSimpleCrudRepository.MyRepo.class, SpringProxy.class, Advised.class,
 									DecoratingProxy.class) //
-							.doesNotContributeJdkProxy(SimpleCrudRepository.MyRepo.class, Repository.class, TransactionalProxy.class,
-									Advised.class, DecoratingProxy.class)
-							.doesNotContributeJdkProxy(SimpleCrudRepository.MyRepo.class, Repository.class, TransactionalProxy.class,
-									Advised.class, DecoratingProxy.class, Serializable.class);
+							.doesNotContributeJdkProxy(ConfigWithSimpleCrudRepository.MyRepo.class, Repository.class,
+									TransactionalProxy.class, Advised.class, DecoratingProxy.class)
+							.doesNotContributeJdkProxy(ConfigWithSimpleCrudRepository.MyRepo.class, Repository.class,
+									TransactionalProxy.class, Advised.class, DecoratingProxy.class, Serializable.class);
 				});
 	}
 
-	@Test
+	@Test // GH-2593
 	void simpleRepositoryWithTxManagerNoKotlinNoReactiveNoComponent() {
 
-		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(SimpleTxCrudRepository.class)
-				.forRepository(SimpleTxCrudRepository.MyTxRepo.class);
+		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(
+				ConfigWithTransactionManagerPresent.class).forRepository(ConfigWithTransactionManagerPresent.MyTxRepo.class);
 
 		assertThatContribution(repositoryBeanContribution) //
-				.targetRepositoryTypeIs(SimpleTxCrudRepository.MyTxRepo.class) //
+				.targetRepositoryTypeIs(ConfigWithTransactionManagerPresent.MyTxRepo.class) //
 				.hasNoFragments() //
 				.codeContributionSatisfies(contribution -> { //
-					contribution.contributesReflectionFor(SimpleTxCrudRepository.MyTxRepo.class) // repository interface
+					contribution.contributesReflectionFor(ConfigWithTransactionManagerPresent.MyTxRepo.class) // repository
+																																																		// interface
 							.contributesReflectionFor(PagingAndSortingRepository.class) // base repository
-							.contributesReflectionFor(SimpleTxCrudRepository.Person.class) // repository domain type
+							.contributesReflectionFor(ConfigWithTransactionManagerPresent.Person.class) // repository domain type
 
 							// proxies
-							.contributesJdkProxy(SimpleTxCrudRepository.MyTxRepo.class, SpringProxy.class, Advised.class,
+							.contributesJdkProxy(ConfigWithTransactionManagerPresent.MyTxRepo.class, SpringProxy.class, Advised.class,
 									DecoratingProxy.class)
-							.contributesJdkProxy(SimpleTxCrudRepository.MyTxRepo.class, Repository.class, TransactionalProxy.class,
-									Advised.class, DecoratingProxy.class)
-							.doesNotContributeJdkProxy(SimpleTxCrudRepository.MyTxRepo.class, Repository.class,
+							.contributesJdkProxy(ConfigWithTransactionManagerPresent.MyTxRepo.class, Repository.class,
+									TransactionalProxy.class, Advised.class, DecoratingProxy.class)
+							.doesNotContributeJdkProxy(ConfigWithTransactionManagerPresent.MyTxRepo.class, Repository.class,
 									TransactionalProxy.class, Advised.class, DecoratingProxy.class, Serializable.class);
 				});
 	}
 
-	@Test
+	@Test // GH-2593
 	void simpleRepositoryWithTxManagerNoKotlinNoReactiveButComponent() {
 
-		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(SimpleTxComponentCrudRepository.class)
-				.forRepository(SimpleTxComponentCrudRepository.MyComponentTxRepo.class);
+		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(
+				ConfigWithTransactionManagerPresentAndAtComponentAnnotatedRepoisoty.class)
+						.forRepository(ConfigWithTransactionManagerPresentAndAtComponentAnnotatedRepoisoty.MyComponentTxRepo.class);
 
 		assertThatContribution(repositoryBeanContribution) //
-				.targetRepositoryTypeIs(SimpleTxComponentCrudRepository.MyComponentTxRepo.class) //
+				.targetRepositoryTypeIs(
+						ConfigWithTransactionManagerPresentAndAtComponentAnnotatedRepoisoty.MyComponentTxRepo.class) //
 				.hasNoFragments() //
 				.codeContributionSatisfies(contribution -> { //
-					contribution.contributesReflectionFor(SimpleTxComponentCrudRepository.MyComponentTxRepo.class) // repository
-																																																					// interface
+					contribution
+							.contributesReflectionFor(
+									ConfigWithTransactionManagerPresentAndAtComponentAnnotatedRepoisoty.MyComponentTxRepo.class) // repository
+							// interface
 							.contributesReflectionFor(PagingAndSortingRepository.class) // base repository
-							.contributesReflectionFor(SimpleTxComponentCrudRepository.Person.class) // repository domain type
+							.contributesReflectionFor(
+									ConfigWithTransactionManagerPresentAndAtComponentAnnotatedRepoisoty.Person.class) // repository domain
+																																																		// type
 
 							// proxies
-							.contributesJdkProxy(SimpleTxComponentCrudRepository.MyComponentTxRepo.class, SpringProxy.class,
-									Advised.class, DecoratingProxy.class)
-							.contributesJdkProxy(SimpleTxComponentCrudRepository.MyComponentTxRepo.class, Repository.class,
-									TransactionalProxy.class, Advised.class, DecoratingProxy.class)
-							.contributesJdkProxy(SimpleTxComponentCrudRepository.MyComponentTxRepo.class, Repository.class,
-									TransactionalProxy.class, Advised.class, DecoratingProxy.class, Serializable.class);
+							.contributesJdkProxy(
+									ConfigWithTransactionManagerPresentAndAtComponentAnnotatedRepoisoty.MyComponentTxRepo.class,
+									SpringProxy.class, Advised.class, DecoratingProxy.class)
+							.contributesJdkProxy(
+									ConfigWithTransactionManagerPresentAndAtComponentAnnotatedRepoisoty.MyComponentTxRepo.class,
+									Repository.class, TransactionalProxy.class, Advised.class, DecoratingProxy.class)
+							.contributesJdkProxy(
+									ConfigWithTransactionManagerPresentAndAtComponentAnnotatedRepoisoty.MyComponentTxRepo.class,
+									Repository.class, TransactionalProxy.class, Advised.class, DecoratingProxy.class, Serializable.class);
 				});
 	}
 
-	@Test
+	@Test // GH-2593
 	void contributesFragmentsCorrectly() {
 
 		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(ConfigWithFragments.class)
@@ -153,14 +155,16 @@ public class AotContributingRepositoryBeanPostProcessorTests {
 							// proxies
 							.contributesJdkProxy(ConfigWithFragments.RepositoryWithFragments.class, SpringProxy.class, Advised.class,
 									DecoratingProxy.class)
-							.doesNotContributeJdkProxy(SimpleTxComponentCrudRepository.MyComponentTxRepo.class, Repository.class,
-									TransactionalProxy.class, Advised.class, DecoratingProxy.class)
-							.doesNotContributeJdkProxy(SimpleTxComponentCrudRepository.MyComponentTxRepo.class, Repository.class,
-									TransactionalProxy.class, Advised.class, DecoratingProxy.class, Serializable.class);
+							.doesNotContributeJdkProxy(
+									ConfigWithTransactionManagerPresentAndAtComponentAnnotatedRepoisoty.MyComponentTxRepo.class,
+									Repository.class, TransactionalProxy.class, Advised.class, DecoratingProxy.class)
+							.doesNotContributeJdkProxy(
+									ConfigWithTransactionManagerPresentAndAtComponentAnnotatedRepoisoty.MyComponentTxRepo.class,
+									Repository.class, TransactionalProxy.class, Advised.class, DecoratingProxy.class, Serializable.class);
 				});
 	}
 
-	@Test
+	@Test // GH-2593
 	void contributesCustomImplementationCorrectly() {
 
 		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(ConfigWithCustomImplementation.class)
@@ -182,18 +186,19 @@ public class AotContributingRepositoryBeanPostProcessorTests {
 				});
 	}
 
-	@Test
+	@Test // GH-2593
 	void contributesDomainTypeAndReachablesCorrectly() {
-		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(SimpleCrudRepository.class)
-				.forRepository(SimpleCrudRepository.MyRepo.class);
+		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(ConfigWithSimpleCrudRepository.class)
+				.forRepository(ConfigWithSimpleCrudRepository.MyRepo.class);
 
 		assertThatContribution(repositoryBeanContribution) //
 				.codeContributionSatisfies(contribution -> {
-					contribution.contributesReflectionFor(SimpleCrudRepository.Person.class, SimpleCrudRepository.Address.class);
+					contribution.contributesReflectionFor(ConfigWithSimpleCrudRepository.Person.class,
+							ConfigWithSimpleCrudRepository.Address.class);
 				});
 	}
 
-	@Test
+	@Test // GH-2593
 	void contributesReactiveRepositoryCorrectly() {
 
 		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(ReactiveConfig.class)
@@ -210,26 +215,26 @@ public class AotContributingRepositoryBeanPostProcessorTests {
 				});
 	}
 
-	@Test
+	@Test // GH-2593
 	void contributesRepositoryBaseClassCorrectly() {
 
 		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(
-				RepositoryConfigWithCustomBaseClass.class)
-						.forRepository(RepositoryConfigWithCustomBaseClass.CustomerRepositoryWithCustomBaseRepo.class);
+				ConfigWithCustomRepositoryBaseClass.class)
+						.forRepository(ConfigWithCustomRepositoryBaseClass.CustomerRepositoryWithCustomBaseRepo.class);
 
 		assertThatContribution(repositoryBeanContribution) //
-				.targetRepositoryTypeIs(RepositoryConfigWithCustomBaseClass.CustomerRepositoryWithCustomBaseRepo.class) //
+				.targetRepositoryTypeIs(ConfigWithCustomRepositoryBaseClass.CustomerRepositoryWithCustomBaseRepo.class) //
 				.hasNoFragments() //
 				.codeContributionSatisfies(contribution -> { //
 					// interface
 					contribution
-							.contributesReflectionFor(RepositoryConfigWithCustomBaseClass.CustomerRepositoryWithCustomBaseRepo.class) // repository
-							.contributesReflectionFor(RepositoryConfigWithCustomBaseClass.RepoBaseClass.class) // base repo class
-							.contributesReflectionFor(RepositoryConfigWithCustomBaseClass.Person.class); // repository domain type
+							.contributesReflectionFor(ConfigWithCustomRepositoryBaseClass.CustomerRepositoryWithCustomBaseRepo.class) // repository
+							.contributesReflectionFor(ConfigWithCustomRepositoryBaseClass.RepoBaseClass.class) // base repo class
+							.contributesReflectionFor(ConfigWithCustomRepositoryBaseClass.Person.class); // repository domain type
 				});
 	}
 
-	@Test
+	@Test // GH-2593
 	void contributesTypesFromQueryMethods() {
 
 		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(ConfigWithQueryMethods.class)
@@ -241,7 +246,7 @@ public class AotContributingRepositoryBeanPostProcessorTests {
 				});
 	}
 
-	@Test
+	@Test // GH-2593
 	void contributesProxiesForPotentialProjections() {
 
 		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(ConfigWithQueryMethods.class)
@@ -256,7 +261,7 @@ public class AotContributingRepositoryBeanPostProcessorTests {
 				});
 	}
 
-	@Test
+	@Test // GH-2593
 	void contributesProxiesForDataAnnotations() {
 
 		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(ConfigWithQueryMethods.class)
@@ -271,20 +276,18 @@ public class AotContributingRepositoryBeanPostProcessorTests {
 				});
 	}
 
-//
-//	@Test
-//	void resolvesCustomRepoFactoryTargetType() {
-//
-//		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
-//
-//		computeConfiguration(RepositoryConfigWithCustomFactoryBeanBaseClass.class, new AnnotationConfigApplicationContext()).forRepository(FixedFactoryRepository.class);
-//
-//		String repoBeanName = ctx.getBeanNamesForType(FixedFactoryRepository.class)[0];
-//		BeanDefinition beanDefinition = ctx.getBeanDefinition(repoBeanName);
-//
-//		ResolvableType resolvableType = beanDefinition.getResolvableType();
-//		System.out.println("resolvableType: " + resolvableType);
-//	}
+	@Test // GH-2593
+	void doesNotCareAboutNonDataAnnotations() {
+
+		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(ConfigWithSimpleCrudRepository.class)
+				.forRepository(ConfigWithSimpleCrudRepository.MyRepo.class);
+
+		assertThatContribution(repositoryBeanContribution) //
+				.codeContributionSatisfies(contribution -> {
+					contribution.doesNotContributeReflectionFor(javax.annotation.Nullable.class);
+					contribution.doesNotContributeJdkProxyFor(javax.annotation.Nullable.class);
+				});
+	}
 
 	BeanContributionBuilder computeConfiguration(Class<?> configuration, AnnotationConfigApplicationContext ctx) {
 
@@ -303,7 +306,6 @@ public class AotContributingRepositoryBeanPostProcessorTests {
 			AotContributingRepositoryBeanPostProcessor postProcessor = ctx
 					.getBean(AotContributingRepositoryBeanPostProcessor.class);
 
-			// AotContributingRepositoryBeanPostProcessor postProcessor = new AotContributingRepositoryBeanPostProcessor();
 			postProcessor.setBeanFactory(ctx.getDefaultListableBeanFactory());
 
 			return postProcessor.contribute((RootBeanDefinition) beanDefinition, it, beanName);

@@ -40,6 +40,15 @@ public class CodeContributionAssert extends AbstractAssert<CodeContributionAsser
 		super(contribution, CodeContributionAssert.class);
 	}
 
+	public CodeContributionAssert doesNotContributeReflectionFor(Class<?>... types) {
+
+		for (Class<?> type : types) {
+			assertThat(this.actual.runtimeHints().reflection().getTypeHint(type))
+					.describedAs("Reflection entry found for %s", type).isNull();
+		}
+		return this;
+	}
+
 	public CodeContributionAssert contributesReflectionFor(Class<?>... types) {
 
 		for (Class<?> type : types) {

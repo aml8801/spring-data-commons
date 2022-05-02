@@ -20,7 +20,7 @@ import lombok.experimental.Delegate;
 import org.springframework.context.annotation.ComponentScan.Filter;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
-import org.springframework.data.aot.sample.RepositoryConfigWithCustomBaseClass.RepoBaseClass;
+import org.springframework.data.aot.sample.ConfigWithCustomRepositoryBaseClass.RepoBaseClass;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.config.EnableRepositories;
 
@@ -30,7 +30,7 @@ import org.springframework.data.repository.config.EnableRepositories;
 @Configuration
 @EnableRepositories(repositoryBaseClass = RepoBaseClass.class, considerNestedRepositories = true,
 		includeFilters = { @Filter(type = FilterType.REGEX, pattern = ".*CustomerRepositoryWithCustomBaseRepo$") })
-public class RepositoryConfigWithCustomBaseClass {
+public class ConfigWithCustomRepositoryBaseClass {
 
 	public interface CustomerRepositoryWithCustomBaseRepo extends CrudRepository<Person, String> {
 

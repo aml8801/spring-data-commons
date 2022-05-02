@@ -19,8 +19,11 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /**
+ * Types managed by a Spring Data implementation. Used to predefine a set of know entities that might need processing
+ * during container/repository initialization phase.
+ *
  * @author Christoph Strobl
- * @since 2022/05
+ * @since 3.0
  */
 public interface ManagedTypes {
 

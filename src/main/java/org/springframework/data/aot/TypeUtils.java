@@ -28,7 +28,6 @@ import java.util.stream.Stream;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
-import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.AnnotationFilter;
 import org.springframework.core.annotation.MergedAnnotation;
 import org.springframework.core.annotation.MergedAnnotations;
@@ -41,6 +40,12 @@ import org.springframework.util.ObjectUtils;
  */
 public class TypeUtils {
 
+	/**
+	 * Resolve ALL annotations present for a given type. Will inspect type, constructors, parameters, methods, fields,...
+	 *
+	 * @param type
+	 * @return never {@literal null}.
+	 */
 	public static Set<MergedAnnotation<Annotation>> resolveUsedAnnotations(Class<?> type) {
 
 		Set<MergedAnnotation<Annotation>> annotations = new LinkedHashSet<>();
@@ -88,10 +93,11 @@ public class TypeUtils {
 	}
 
 	public static boolean isAnnotationFromOrMetaAnnotated(Class<? extends Annotation> annotation, String prefix) {
-		if(annotation.getPackage().getName().startsWith(prefix)) {
+		if (annotation.getPackage().getName().startsWith(prefix)) {
 			return true;
 		}
-		return TypeUtils.resolveAnnotationsFor(annotation).anyMatch(it -> it.getType().getPackage().getName().startsWith(prefix));
+		return TypeUtils.resolveAnnotationsFor(annotation)
+				.anyMatch(it -> it.getType().getPackage().getName().startsWith(prefix));
 	}
 
 	public static boolean hasAnnotatedField(Class<?> type, String annotationName) {
