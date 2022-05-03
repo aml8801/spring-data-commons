@@ -15,6 +15,8 @@
  */
 package org.springframework.data;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -28,6 +30,13 @@ import java.util.stream.Stream;
 public interface ManagedTypes {
 
 	void forEach(Consumer<Class<?>> action);
+
+	default List<Class<?>> toList() {
+
+		List<Class<?>> tmp = new ArrayList<>(100);
+		forEach(tmp::add);
+		return tmp;
+	}
 
 	static ManagedTypes of(Iterable<Class<?>> types) {
 		return types::forEach;

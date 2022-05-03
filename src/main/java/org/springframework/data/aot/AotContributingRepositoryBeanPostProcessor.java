@@ -23,7 +23,6 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import org.springframework.aot.generator.CodeContribution;
-import org.springframework.aot.hint.MemberCategory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
@@ -35,7 +34,6 @@ import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.MergedAnnotation;
-import org.springframework.core.annotation.SynthesizedAnnotation;
 import org.springframework.data.ManagedTypes;
 import org.springframework.data.repository.config.RepositoryConfigurationExtensionSupport;
 import org.springframework.data.repository.config.RepositoryMetadata;
@@ -82,17 +80,17 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 		ctx.setIdentifyingAnnotations(identifyingAnnotations);
 
 		/* TODO: contribute ManagedTypesBean maybe based on the config */
-		if (!ObjectUtils.isEmpty(beanFactory.getBeanNamesForType(ManagedTypes.class))
-				&& beanFactory instanceof DefaultListableBeanFactory bf) {
-
-			Set<Class<?>> classes = new TypeScanner(bf.getBeanClassLoader()).scanForTypesAnnotatedWith(identifyingAnnotations)
-					.inPackages(ctx.getBasePackages());
-			BeanDefinitionBuilder builder = BeanDefinitionBuilder.rootBeanDefinition(ManagedTypes.class)
-					.setFactoryMethod("of").addConstructorArgValue(classes);
-			bf.registerBeanDefinition(
-					String.format("%s.managed-types", StringUtils.hasText(moduleName) ? moduleName : beanName),
-					builder.getBeanDefinition());
-		}
+//		if (!ObjectUtils.isEmpty(beanFactory.getBeanNamesForType(ManagedTypes.class))
+//				&& beanFactory instanceof DefaultListableBeanFactory bf) {
+//
+//			Set<Class<?>> classes = new TypeScanner(bf.getBeanClassLoader()).scanForTypesAnnotatedWith(identifyingAnnotations)
+//					.inPackages(ctx.getBasePackages());
+//			BeanDefinitionBuilder builder = BeanDefinitionBuilder.rootBeanDefinition(ManagedTypes.class)
+//					.setFactoryMethod("of").addConstructorArgValue(classes);
+//			bf.registerBeanDefinition(
+//					String.format("%s.managed-types", StringUtils.hasText(moduleName) ? moduleName : beanName),
+//					builder.getBeanDefinition());
+//		}
 
 		/*
 		 * Help the AOT processing render the FactoryBean<T> type correctly that is used to tell the outcome of the FB.
@@ -147,29 +145,7 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 	}
 
 	protected void contributeType(Class<?> type, CodeContribution contribution) {
-
-		if (type.isAnnotation()) {
-			contribution.runtimeHints().reflection().registerType(type, hint -> {
-				hint.withMembers(MemberCategory.INTROSPECT_PUBLIC_METHODS);
-			});
-			// TODO: not only package check
-			if (type.getPackage().getName().startsWith("org.springframework.data")) {
-				contribution.runtimeHints().proxies().registerJdkProxy(type, SynthesizedAnnotation.class);
-			}
-			return;
-		}
-		if (type.isInterface()) {
-			contribution.runtimeHints().reflection().registerType(type, hint -> {
-				hint.withMembers(MemberCategory.INVOKE_PUBLIC_METHODS);
-			});
-			return;
-		}
-		if (type.isPrimitive()) {
-			return;
-		}
-		contribution.runtimeHints().reflection().registerType(type, hint -> {
-			hint.withMembers(MemberCategory.INVOKE_DECLARED_CONSTRUCTORS, MemberCategory.INVOKE_PUBLIC_METHODS);
-		});
+		TypeContributor.contribute(type, it -> true, contribution);
 	}
 
 	public Predicate<Class<?>> typeFilter() { // like only document ones.

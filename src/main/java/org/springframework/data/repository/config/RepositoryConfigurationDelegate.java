@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.logging.Log;
@@ -44,9 +45,12 @@ import org.springframework.core.io.support.SpringFactoriesLoader;
 import org.springframework.core.log.LogMessage;
 import org.springframework.core.metrics.ApplicationStartup;
 import org.springframework.core.metrics.StartupStep;
+import org.springframework.data.ManagedTypes;
+import org.springframework.data.aot.TypeScanner;
 import org.springframework.data.repository.core.support.RepositoryFactorySupport;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StopWatch;
 
 /**
@@ -207,11 +211,28 @@ public class RepositoryConfigurationDelegate {
 		}
 
 		// TODO: AOT Processing -> guard this one with a flag so it's not always present
-		BeanDefinitionBuilder pp = BeanDefinitionBuilder.rootBeanDefinition(extension.getAotPostProcessor());
-		pp.addPropertyValue("configMap", metadataMap);
-		registry.registerBeanDefinition(
-				String.format("data-%s.post-processor" /* might be duplicate */, extension.getModuleName()),
-				pp.getBeanDefinition());
+		{ // --> AOT processing start
+			BeanDefinitionBuilder pp = BeanDefinitionBuilder.rootBeanDefinition(extension.getAotPostProcessor());
+			pp.addPropertyValue("configMap", metadataMap);
+			registry.registerBeanDefinition(
+					String.format("data-%s.repository-post-processor" /* might be duplicate */, extension.getModuleName()),
+					pp.getBeanDefinition());
+
+			if (extension instanceof RepositoryConfigurationExtensionSupport rces) {
+
+				Set<String> packages = metadataMap.values().stream().flatMap(it -> it.getBasePackages().stream())
+						.collect(Collectors.toSet());
+				Set<Class<?>> classes = new TypeScanner(resourceLoader.getClassLoader())
+						.scanForTypesAnnotatedWith(rces.getIdentifyingAnnotations()).inPackages(packages);
+
+				if (!CollectionUtils.isEmpty(classes)) {
+
+					registry.registerBeanDefinition(String.format("%s.managed-types", extension.getModuleName()),
+							BeanDefinitionBuilder.rootBeanDefinition(ManagedTypes.class).setFactoryMethod("of")
+									.addConstructorArgValue(classes).getBeanDefinition());
+				}
+			}
+		} // <-- AOT processing end
 
 		return definitions;
 	}
