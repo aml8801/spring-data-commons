@@ -136,7 +136,8 @@ class RepositoryBeanDefinitionBuilder {
 		return builder;
 	}
 
-	public RepositoryMetadata buildMetadata(RepositoryConfiguration<?> configuration) {
+	// TODO: merge that with the one that creates the BD
+	RepositoryMetadata buildMetadata(RepositoryConfiguration<?> configuration) {
 
 		ImplementationDetectionConfiguration config = configuration
 				.toImplementationDetectionConfiguration(metadataReaderFactory);

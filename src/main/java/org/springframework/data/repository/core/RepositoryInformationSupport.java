@@ -33,8 +33,11 @@ import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
 /**
+ * Common base class for {@link RepositoryInformation} that delays resolution of {@link RepositoryMetadata} and the
+ * repository base to the latest possible time.
+ *
  * @author Christoph Strobl
- * @since 2022/04
+ * @since 3.0
  */
 public abstract class RepositoryInformationSupport implements RepositoryInformation {
 

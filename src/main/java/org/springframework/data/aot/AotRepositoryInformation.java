@@ -28,10 +28,12 @@ import org.springframework.data.repository.core.support.RepositoryFragment;
 import org.springframework.lang.Nullable;
 
 /**
+ * {@link RepositoryInformation} based on {@link RepositoryMetadata} collected at build time.
+ *
  * @author Christoph Strobl
- * @since 2022/03
+ * @since 3.0
  */
-public class AotRepositoryInformation extends RepositoryInformationSupport implements RepositoryInformation {
+class AotRepositoryInformation extends RepositoryInformationSupport implements RepositoryInformation {
 
 	private final Supplier<Collection<RepositoryFragment<?>>> fragments;
 

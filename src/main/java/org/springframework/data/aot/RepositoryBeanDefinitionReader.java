@@ -31,9 +31,12 @@ import org.springframework.data.util.Lazy;
 import org.springframework.util.ClassUtils;
 
 /**
+ * Reader that allows to extract {@link RepositoryInformation} from metadata.
+ *
  * @author Christoph Strobl
+ * @since 3.0
  */
-public class RepositoryBeanDefinitionReader {
+class RepositoryBeanDefinitionReader {
 
 	static RepositoryInformation readRepositoryInformation(RepositoryMetadata metadata,
 			ConfigurableListableBeanFactory beanFactory) {
@@ -72,7 +75,6 @@ public class RepositoryBeanDefinitionReader {
 
 	static Supplier<org.springframework.data.repository.core.RepositoryMetadata> metadataSupplier(
 			RepositoryMetadata metadata, ConfigurableListableBeanFactory beanFactory) {
-
 		return Lazy.of(() -> new DefaultRepositoryMetadata(forName(metadata.getRepositoryInterface(), beanFactory)));
 	}
 

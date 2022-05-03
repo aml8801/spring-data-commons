@@ -186,8 +186,7 @@ public class RepositoryConfigurationDelegate {
 						configuration.getRepositoryInterface(), configuration.getRepositoryFactoryBeanClassName()));
 			}
 
-			RepositoryMetadata repositoryMetadata = builder.buildMetadata(configuration);
-			metadataMap.put(beanName, repositoryMetadata);
+			metadataMap.put(beanName, builder.buildMetadata(configuration));
 
 			beanDefinition.setAttribute(FACTORY_BEAN_OBJECT_TYPE, configuration.getRepositoryInterface());
 			registry.registerBeanDefinition(beanName, beanDefinition);

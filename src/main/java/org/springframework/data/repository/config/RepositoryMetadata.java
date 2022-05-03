@@ -25,7 +25,7 @@ import org.springframework.lang.Nullable;
 
 /**
  * @author Christoph Strobl
- * @since 2022/04
+ * @since 3.0
  */
 public class RepositoryMetadata<T extends RepositoryConfigurationSource> implements RepositoryConfiguration<T> {
 
@@ -34,6 +34,7 @@ public class RepositoryMetadata<T extends RepositoryConfigurationSource> impleme
 
 	public RepositoryMetadata(RepositoryConfiguration<T> repositoryConfiguration,
 			List<RepositoryFragmentConfiguration> fragmentConfiguration) {
+
 		this.repositoryConfiguration = repositoryConfiguration;
 		this.fragmentConfiguration = fragmentConfiguration;
 	}
@@ -51,11 +52,6 @@ public class RepositoryMetadata<T extends RepositoryConfigurationSource> impleme
 	@Override
 	public String getRepositoryInterface() {
 		return repositoryConfiguration.getRepositoryInterface();
-	}
-
-	@Override
-	public Class getRepositoryInterfaceType(ClassLoader classLoader) {
-		return repositoryConfiguration.getRepositoryInterfaceType(classLoader);
 	}
 
 	@Override

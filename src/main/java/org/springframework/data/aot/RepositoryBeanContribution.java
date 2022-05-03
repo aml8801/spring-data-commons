@@ -33,12 +33,15 @@ import org.springframework.data.projection.TargetAware;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.core.RepositoryInformation;
 import org.springframework.data.repository.core.support.RepositoryFragment;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ClassUtils;
 
 /**
+ * The {@link BeanInstantiationContribution} for a specific data repository.
+ *
  * @author Christoph Strobl
- * @since 2022/04
+ * @since 3.0
  */
 public class RepositoryBeanContribution implements BeanInstantiationContribution {
 
@@ -50,12 +53,6 @@ public class RepositoryBeanContribution implements BeanInstantiationContribution
 
 		this.context = context;
 		this.repositoryInformation = context.getRepositoryInformation();
-	}
-
-	public RepositoryBeanContribution setModuleContribution(
-			BiConsumer<AotRepositoryContext, CodeContribution> moduleContribution) {
-		this.moduleContribution = moduleContribution;
-		return this;
 	}
 
 	@Override
@@ -158,6 +155,19 @@ public class RepositoryBeanContribution implements BeanInstantiationContribution
 
 		contribution.runtimeHints().proxies().registerJdkProxy(type, TargetAware.class, SpringProxy.class,
 				DecoratingProxy.class);
+	}
+
+	/**
+	 * Callback for module specific contributions.
+	 *
+	 * @param moduleContribution can be {@literal null}.
+	 * @return this.
+	 */
+	public RepositoryBeanContribution setModuleContribution(
+			@Nullable BiConsumer<AotRepositoryContext, CodeContribution> moduleContribution) {
+
+		this.moduleContribution = moduleContribution;
+		return this;
 	}
 
 	public RepositoryInformation getRepositoryInformation() {

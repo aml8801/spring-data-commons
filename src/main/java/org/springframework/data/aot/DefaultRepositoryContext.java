@@ -27,10 +27,12 @@ import org.springframework.data.repository.core.RepositoryInformation;
 import org.springframework.data.util.Lazy;
 
 /**
+ * Default implementation of {@link AotRepositoryContext}
+ *
  * @author Christoph Strobl
- * @since 2022/04
+ * @since 3.0
  */
-public class DefaultRepositoryContext implements AotRepositoryContext {
+class DefaultRepositoryContext implements AotRepositoryContext {
 
 	private AotContext aotContext;
 
