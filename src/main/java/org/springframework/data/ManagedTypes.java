@@ -21,7 +21,6 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.util.Lazy;
 
 /**
@@ -48,5 +47,18 @@ public interface ManagedTypes {
 
 	static ManagedTypes of(Stream<? extends Class<?>> types) {
 		return types::forEach;
+	}
+
+	static ManagedTypes o(Supplier<Iterable<? extends Class<?>>> dataProvider) {
+
+		return new ManagedTypes() {
+
+			Lazy<Iterable<? extends Class<?>>> lazyProvider = Lazy.of(dataProvider);
+
+			@Override
+			public void forEach(Consumer<Class<?>> action) {
+				lazyProvider.get().forEach(action);
+			}
+		};
 	}
 }

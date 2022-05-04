@@ -29,12 +29,9 @@ import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.generator.AotContributingBeanPostProcessor;
-import org.springframework.beans.factory.support.BeanDefinitionBuilder;
-import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.MergedAnnotation;
-import org.springframework.data.ManagedTypes;
 import org.springframework.data.repository.config.RepositoryConfigurationExtensionSupport;
 import org.springframework.data.repository.config.RepositoryMetadata;
 import org.springframework.data.repository.core.RepositoryInformation;
@@ -42,7 +39,6 @@ import org.springframework.data.repository.core.support.RepositoryFactoryBeanSup
 import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
-import org.springframework.util.StringUtils;
 
 /**
  * @author Christoph Strobl
@@ -63,10 +59,8 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 		RepositoryMetadata<?> metadata = configMap.get(beanName);
 
 		Set<Class<? extends Annotation>> identifyingAnnotations = Collections.emptySet();
-		String moduleName = null;
 		if (metadata.getConfigurationSource() instanceof RepositoryConfigurationExtensionSupport ces) {
 			identifyingAnnotations = new LinkedHashSet<>(ces.getIdentifyingAnnotations());
-			moduleName = ces.getModuleName();
 		}
 
 		RepositoryInformation repositoryInformation = RepositoryBeanDefinitionReader.readRepositoryInformation(metadata,
@@ -78,19 +72,6 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 		ctx.setBasePackages(metadata.getBasePackages().toSet());
 		ctx.setRepositoryInformation(repositoryInformation);
 		ctx.setIdentifyingAnnotations(identifyingAnnotations);
-
-		/* TODO: contribute ManagedTypesBean maybe based on the config */
-//		if (!ObjectUtils.isEmpty(beanFactory.getBeanNamesForType(ManagedTypes.class))
-//				&& beanFactory instanceof DefaultListableBeanFactory bf) {
-//
-//			Set<Class<?>> classes = new TypeScanner(bf.getBeanClassLoader()).scanForTypesAnnotatedWith(identifyingAnnotations)
-//					.inPackages(ctx.getBasePackages());
-//			BeanDefinitionBuilder builder = BeanDefinitionBuilder.rootBeanDefinition(ManagedTypes.class)
-//					.setFactoryMethod("of").addConstructorArgValue(classes);
-//			bf.registerBeanDefinition(
-//					String.format("%s.managed-types", StringUtils.hasText(moduleName) ? moduleName : beanName),
-//					builder.getBeanDefinition());
-//		}
 
 		/*
 		 * Help the AOT processing render the FactoryBean<T> type correctly that is used to tell the outcome of the FB.

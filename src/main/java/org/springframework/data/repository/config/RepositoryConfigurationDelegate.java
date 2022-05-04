@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -46,9 +47,12 @@ import org.springframework.core.io.support.SpringFactoriesLoader;
 import org.springframework.core.log.LogMessage;
 import org.springframework.core.metrics.ApplicationStartup;
 import org.springframework.core.metrics.StartupStep;
-import org.springframework.data.ManagedTypesBean;
+import org.springframework.data.ManagedTypes;
+import org.springframework.data.aot.AotDataComponentsBeanFactoryPostProcessor;
 import org.springframework.data.aot.TypeScanner;
+import org.springframework.data.repository.config.RepositoryConfigurationDelegate.LazyRepositoryInjectionPointResolver.ManagedTypesBean;
 import org.springframework.data.repository.core.support.RepositoryFactorySupport;
+import org.springframework.data.util.Lazy;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StopWatch;
@@ -211,32 +215,58 @@ public class RepositoryConfigurationDelegate {
 		}
 
 		// TODO: AOT Processing -> guard this one with a flag so it's not always present
-		{ // --> AOT processing start
-			BeanDefinitionBuilder pp = BeanDefinitionBuilder.rootBeanDefinition(extension.getAotPostProcessor());
-			pp.addPropertyValue("configMap", metadataMap);
-			registry.registerBeanDefinition(
-					String.format("data-%s.repository-post-processor" /* might be duplicate */, extension.getModulePrefix()),
-					pp.getBeanDefinition());
+		registerAotComponents(registry, extension, metadataMap);
 
+		return definitions;
+	}
+
+	private void registerAotComponents(BeanDefinitionRegistry registry, RepositoryConfigurationExtension extension,
+			Map<String, RepositoryMetadata<?>> metadataMap) {
+
+		{ // overall general data bean factory postprocessor - TODO: move this to spring factories!!!
+			if (!registry.isBeanNameInUse(AotDataComponentsBeanFactoryPostProcessor.class.getName())) {
+				registry.registerBeanDefinition(AotDataComponentsBeanFactoryPostProcessor.class.getName(), BeanDefinitionBuilder
+						.rootBeanDefinition(AotDataComponentsBeanFactoryPostProcessor.class).getBeanDefinition());
+			}
+		}
+
+		{ // Managed types lookup if possible
 			if (extension instanceof RepositoryConfigurationExtensionSupport configExtensionSupport) {
 
 				String targetManagedTypesBeanName = String.format("%s.managed-types", extension.getModulePrefix());
 				if (!registry.isBeanNameInUse(targetManagedTypesBeanName)) {
 
-					Supplier<Set<Class<?>>> args = () -> {
-						Set<String> packages = metadataMap.values().stream().flatMap(it -> it.getBasePackages().stream())
-								.collect(Collectors.toSet());
-						return new TypeScanner(resourceLoader.getClassLoader())
-								.scanForTypesAnnotatedWith(configExtensionSupport.getIdentifyingAnnotations()).inPackages(packages);
+					// this needs to be lazy or we'd resolve types to early maybe
+					Supplier<Set<Class<?>>> args = new Supplier<Set<Class<?>>>() {
+
+						@Override
+						public Set<Class<?>> get() {
+
+							Set<String> packages = metadataMap.values().stream().flatMap(it -> it.getBasePackages().stream())
+									.collect(Collectors.toSet());
+							return new TypeScanner(resourceLoader.getClassLoader())
+									.scanForTypesAnnotatedWith(configExtensionSupport.getIdentifyingAnnotations()).inPackages(packages);
+						}
 					};
 
 					registry.registerBeanDefinition(targetManagedTypesBeanName, BeanDefinitionBuilder
 							.rootBeanDefinition(ManagedTypesBean.class).addConstructorArgValue(args).getBeanDefinition());
 				}
 			}
-		} // <-- AOT processing end
+		}
 
-		return definitions;
+		{ // module specific repository post processor
+			String aotRepoPostProcessorBeanName = String.format("data-%s.repository-post-processor" /* might be duplicate */,
+					extension.getModulePrefix());
+
+			if (!registry.isBeanNameInUse(aotRepoPostProcessorBeanName)) {
+
+				BeanDefinitionBuilder aotRepoPostProcessor = BeanDefinitionBuilder
+						.rootBeanDefinition(extension.getAotPostProcessor());
+				aotRepoPostProcessor.addPropertyValue("configMap", metadataMap);
+				registry.registerBeanDefinition(aotRepoPostProcessorBeanName, aotRepoPostProcessor.getBeanDefinition());
+			}
+		}
 	}
 
 	/**
@@ -364,6 +394,20 @@ public class RepositoryConfigurationDelegate {
 			}
 
 			return lazyInit;
+		}
+
+		static class ManagedTypesBean implements ManagedTypes {
+
+			private Lazy<Set<Class<?>>> types;
+
+			public ManagedTypesBean(Supplier<Set<Class<?>>> types) {
+				this.types = Lazy.of(types);
+			}
+
+			@Override
+			public void forEach(Consumer<Class<?>> action) {
+				types.get().forEach(action);
+			}
 		}
 	}
 }
