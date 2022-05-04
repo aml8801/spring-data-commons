@@ -18,7 +18,11 @@ package org.springframework.data;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
+
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.data.util.Lazy;
 
 /**
  * Types managed by a Spring Data implementation. Used to predefine a set of know entities that might need processing
@@ -38,11 +42,11 @@ public interface ManagedTypes {
 		return tmp;
 	}
 
-	static ManagedTypes of(Iterable<Class<?>> types) {
+	static ManagedTypes of(Iterable<? extends Class<?>> types) {
 		return types::forEach;
 	}
 
-	static ManagedTypes of(Stream<Class<?>> types) {
+	static ManagedTypes of(Stream<? extends Class<?>> types) {
 		return types::forEach;
 	}
 }

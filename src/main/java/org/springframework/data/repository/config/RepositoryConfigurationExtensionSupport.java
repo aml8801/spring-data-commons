@@ -59,11 +59,6 @@ public abstract class RepositoryConfigurationExtensionSupport implements Reposit
 
 	private boolean noMultiStoreSupport = false;
 
-	@Override
-	public String getModuleName() {
-		return StringUtils.capitalize(getModulePrefix());
-	}
-
 	public <T extends RepositoryConfigurationSource> Collection<RepositoryConfiguration<T>> getRepositoryConfigurations(
 			T configSource, ResourceLoader loader) {
 		return getRepositoryConfigurations(configSource, loader, false);
@@ -113,7 +108,7 @@ public abstract class RepositoryConfigurationExtensionSupport implements Reposit
 	 *
 	 * @return must not be {@literal null}.
 	 */
-	protected abstract String getModulePrefix();
+	public abstract String getModulePrefix();
 
 	public void postProcess(BeanDefinitionBuilder builder, RepositoryConfigurationSource source) {}
 

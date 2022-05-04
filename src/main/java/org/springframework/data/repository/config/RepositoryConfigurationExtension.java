@@ -23,6 +23,7 @@ import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.data.aot.AotContributingRepositoryBeanPostProcessor;
+import org.springframework.util.StringUtils;
 
 /**
  * SPI to implement store specific extension to the repository bean definition registration process.
@@ -38,7 +39,11 @@ public interface RepositoryConfigurationExtension {
 	 *
 	 * @return
 	 */
-	String getModuleName();
+	default String getModuleName() {
+		return StringUtils.capitalize(getModulePrefix());
+	}
+
+	String getModulePrefix();
 
 	/**
 	 * Returns all {@link RepositoryConfiguration}s obtained through the given {@link RepositoryConfigurationSource}.

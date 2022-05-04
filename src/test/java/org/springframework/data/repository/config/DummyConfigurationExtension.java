@@ -28,7 +28,7 @@ class DummyConfigurationExtension extends RepositoryConfigurationExtensionSuppor
 	}
 
 	@Override
-	protected String getModulePrefix() {
+	public String getModulePrefix() {
 		return "commons";
 	}
 }

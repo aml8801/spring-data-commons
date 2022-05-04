@@ -102,6 +102,6 @@ class TypeContributor {
 		}
 
 		return MergedAnnotation.of(annotation).getMetaTypes().stream()
-				.anyMatch(it -> isPartOfOrMetaAnnotatedWith(annotation, namespaces));
+				.anyMatch(it -> isPartOf(annotation, namespaces));
 	}
 }

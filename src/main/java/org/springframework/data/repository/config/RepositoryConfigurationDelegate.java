@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.commons.logging.Log;
@@ -45,12 +46,11 @@ import org.springframework.core.io.support.SpringFactoriesLoader;
 import org.springframework.core.log.LogMessage;
 import org.springframework.core.metrics.ApplicationStartup;
 import org.springframework.core.metrics.StartupStep;
-import org.springframework.data.ManagedTypes;
+import org.springframework.data.ManagedTypesBean;
 import org.springframework.data.aot.TypeScanner;
 import org.springframework.data.repository.core.support.RepositoryFactorySupport;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
-import org.springframework.util.CollectionUtils;
 import org.springframework.util.StopWatch;
 
 /**
@@ -215,21 +215,23 @@ public class RepositoryConfigurationDelegate {
 			BeanDefinitionBuilder pp = BeanDefinitionBuilder.rootBeanDefinition(extension.getAotPostProcessor());
 			pp.addPropertyValue("configMap", metadataMap);
 			registry.registerBeanDefinition(
-					String.format("data-%s.repository-post-processor" /* might be duplicate */, extension.getModuleName()),
+					String.format("data-%s.repository-post-processor" /* might be duplicate */, extension.getModulePrefix()),
 					pp.getBeanDefinition());
 
-			if (extension instanceof RepositoryConfigurationExtensionSupport rces) {
+			if (extension instanceof RepositoryConfigurationExtensionSupport configExtensionSupport) {
 
-				Set<String> packages = metadataMap.values().stream().flatMap(it -> it.getBasePackages().stream())
-						.collect(Collectors.toSet());
-				Set<Class<?>> classes = new TypeScanner(resourceLoader.getClassLoader())
-						.scanForTypesAnnotatedWith(rces.getIdentifyingAnnotations()).inPackages(packages);
+				String targetManagedTypesBeanName = String.format("%s.managed-types", extension.getModulePrefix());
+				if (!registry.isBeanNameInUse(targetManagedTypesBeanName)) {
 
-				if (!CollectionUtils.isEmpty(classes)) {
+					Supplier<Set<Class<?>>> args = () -> {
+						Set<String> packages = metadataMap.values().stream().flatMap(it -> it.getBasePackages().stream())
+								.collect(Collectors.toSet());
+						return new TypeScanner(resourceLoader.getClassLoader())
+								.scanForTypesAnnotatedWith(configExtensionSupport.getIdentifyingAnnotations()).inPackages(packages);
+					};
 
-					registry.registerBeanDefinition(String.format("%s.managed-types", extension.getModuleName()),
-							BeanDefinitionBuilder.rootBeanDefinition(ManagedTypes.class).setFactoryMethod("of")
-									.addConstructorArgValue(classes).getBeanDefinition());
+					registry.registerBeanDefinition(targetManagedTypesBeanName, BeanDefinitionBuilder
+							.rootBeanDefinition(ManagedTypesBean.class).addConstructorArgValue(args).getBeanDefinition());
 				}
 			}
 		} // <-- AOT processing end
