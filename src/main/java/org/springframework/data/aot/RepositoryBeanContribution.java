@@ -20,6 +20,8 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.aop.SpringProxy;
 import org.springframework.aop.framework.Advised;
 import org.springframework.aot.generator.CodeContribution;
@@ -45,6 +47,8 @@ import org.springframework.util.ClassUtils;
  */
 public class RepositoryBeanContribution implements BeanInstantiationContribution {
 
+	private static final Log logger = LogFactory.getLog(RepositoryBeanContribution.class);
+
 	private final AotRepositoryContext context;
 	private final RepositoryInformation repositoryInformation;
 	private BiConsumer<AotRepositoryContext, CodeContribution> moduleContribution;
@@ -66,6 +70,11 @@ public class RepositoryBeanContribution implements BeanInstantiationContribution
 	}
 
 	private void writeRepositoryInfo(CodeContribution contribution) {
+
+		if (logger.isDebugEnabled()) {
+			logger.debug(String.format("Contributing data repository information for %s.",
+					repositoryInformation.getRepositoryInterface()));
+		}
 
 		// TODO: is this the way?
 		contribution.runtimeHints().reflection() //

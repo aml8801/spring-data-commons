@@ -30,6 +30,8 @@ import org.springframework.data.ManagedTypes;
 import org.springframework.lang.Nullable;
 
 /**
+ * {@link AotContributingBeanFactoryPostProcessor} implementation to capture common data infrastructure concerns.
+ *
  * @author Christoph Strobl
  * @since 3.0
  */

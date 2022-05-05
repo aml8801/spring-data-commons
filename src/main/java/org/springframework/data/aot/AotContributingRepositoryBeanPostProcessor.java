@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.aot.generator.CodeContribution;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
@@ -32,6 +34,7 @@ import org.springframework.beans.factory.generator.AotContributingBeanPostProces
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.MergedAnnotation;
+import org.springframework.data.repository.config.RepositoryConfigurationExtension;
 import org.springframework.data.repository.config.RepositoryConfigurationExtensionSupport;
 import org.springframework.data.repository.config.RepositoryMetadata;
 import org.springframework.data.repository.core.RepositoryInformation;
@@ -41,9 +44,28 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
 
 /**
+ * {@link AotContributingBeanPostProcessor} taking care of data repositories.
+ * <p>
+ * Post processes {@link RepositoryFactoryBeanSupport repository factory beans} to provide generic type information to
+ * AOT tooling to allow deriving target type from the {@link org.springframework.beans.factory.config.BeanDefinition
+ * bean definition}. If generic types to not match, due to customization of the factory bean by the user, at least the
+ * target repository type is provided via the {@link FactoryBean#OBJECT_TYPE_ATTRIBUTE}.
+ * </p>
+ * <p>
+ * Via {@link #contribute(AotRepositoryContext, CodeContribution)} stores can provide custom logic for contributing
+ * additional (eg. reflection) configuration. By default reflection configuration will be added for types reachable from
+ * the repository declaration and query methods as well as all used {@link Annotation annotations} from the
+ * {@literal org.springframework.data} namespace.
+ * </p>
+ * The post processor is typically configured via {@link RepositoryConfigurationExtension#getAotPostProcessor()} and
+ * gets added by the {@link org.springframework.data.repository.config.RepositoryConfigurationDelegate}.
+ * 
  * @author Christoph Strobl
+ * @since 3.0
  */
 public class AotContributingRepositoryBeanPostProcessor implements AotContributingBeanPostProcessor, BeanFactoryAware {
+
+	private static final Log logger = LogFactory.getLog(AotContributingBeanPostProcessor.class);
 
 	private ConfigurableListableBeanFactory beanFactory;
 	private Map<String, RepositoryMetadata<?>> configMap;
@@ -78,6 +100,10 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 		 * We just need to set the target repo type of the RepositoryFactoryBeanSupport while keeping the actual ID and DomainType set to object.
 		 * If the generics do not match we do not try to resolve and remap them, but rather set the ObjectType attribute.
 		 */
+		if (logger.isDebugEnabled()) {
+			logger.debug(String.format("Enhancing repository factory bean definition %s.", beanName));
+		}
+
 		ResolvableType resolvedFactoryBean = ResolvableType.forClass(
 				ctx.resolveType(metadata.getRepositoryFactoryBeanClassName()).orElse(RepositoryFactoryBeanSupport.class));
 		if (resolvedFactoryBean.getGenerics().length == 3) {
@@ -115,7 +141,7 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 	}
 
 	private static boolean isInDataNamespace(Class<?> type) {
-		return type.getPackage().getName().startsWith("org.springframework.data");
+		return type.getPackage().getName().startsWith(TypeContributor.DATA_NAMESPACE);
 	}
 
 	private static boolean isJavaOrPrimitiveType(Class<?> type) {
@@ -126,6 +152,11 @@ public class AotContributingRepositoryBeanPostProcessor implements AotContributi
 	}
 
 	protected void contributeType(Class<?> type, CodeContribution contribution) {
+
+		if (logger.isDebugEnabled()) {
+			logger.debug(String.format("Contributing type information for %s.", type));
+		}
+
 		TypeContributor.contribute(type, it -> true, contribution);
 	}
 

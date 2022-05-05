@@ -31,7 +31,7 @@ import org.springframework.util.ClassUtils;
 /**
  * @author Christoph Strobl
  */
-public class TypeScanner {
+public class TypeScanner { // TODO: replace this with AnnotatedTypeScanner maybe?
 
 	private final ClassLoader classLoader;
 

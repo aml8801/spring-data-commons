@@ -31,6 +31,8 @@ import org.springframework.core.annotation.SynthesizedAnnotation;
  */
 class TypeContributor {
 
+	public static final String DATA_NAMESPACE = "org.springframework.data";
+
 	/**
 	 * Contribute the type with default reflection configuration, skip annotations.
 	 *
@@ -60,8 +62,8 @@ class TypeContributor {
 				hint.withMembers(MemberCategory.INTROSPECT_PUBLIC_METHODS);
 			});
 
-			// TODO: not only package check
-			if (type.getPackage().getName().startsWith("org.springframework.data")) {
+			// TODO: do we need this if meta annotated with SD annotation?
+			if (type.getPackage().getName().startsWith(DATA_NAMESPACE)) {
 				contribution.runtimeHints().proxies().registerJdkProxy(type, SynthesizedAnnotation.class);
 			}
 			return;
@@ -101,7 +103,6 @@ class TypeContributor {
 			return true;
 		}
 
-		return MergedAnnotation.of(annotation).getMetaTypes().stream()
-				.anyMatch(it -> isPartOf(annotation, namespaces));
+		return MergedAnnotation.of(annotation).getMetaTypes().stream().anyMatch(it -> isPartOf(annotation, namespaces));
 	}
 }

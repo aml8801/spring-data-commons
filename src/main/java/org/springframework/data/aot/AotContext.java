@@ -21,12 +21,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanReference;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
 
@@ -39,6 +42,29 @@ import org.springframework.util.ObjectUtils;
  * @author Christoph Strobl
  */
 public interface AotContext {
+
+	/**
+	 * Create an {@link AotContext} backed by the given {@link BeanFactory}.
+	 *
+	 * @param beanFactory must not be {@literal null}.
+	 * @return new instance of {@link AotContext}.
+	 */
+	static AotContext context(BeanFactory beanFactory) {
+
+		Assert.notNull(beanFactory, "BeanFactory must not be null!");
+
+		return new AotContext() {
+
+			private final ConfigurableListableBeanFactory bf = beanFactory instanceof ConfigurableListableBeanFactory
+					? (ConfigurableListableBeanFactory) beanFactory
+					: new DefaultListableBeanFactory(beanFactory);
+
+			@Override
+			public ConfigurableListableBeanFactory getBeanFactory() {
+				return bf;
+			}
+		};
+	}
 
 	ConfigurableListableBeanFactory getBeanFactory();
 

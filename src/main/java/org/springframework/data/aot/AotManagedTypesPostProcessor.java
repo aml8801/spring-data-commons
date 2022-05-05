@@ -18,61 +18,90 @@ package org.springframework.data.aot;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.function.Supplier;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.aot.generator.CodeContribution;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
-import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.beans.factory.config.ConstructorArgumentValues.ValueHolder;
 import org.springframework.beans.factory.generator.AotContributingBeanPostProcessor;
 import org.springframework.beans.factory.generator.BeanInstantiationContribution;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.core.ResolvableType;
 import org.springframework.data.ManagedTypes;
-import org.springframework.javapoet.ClassName;
-import org.springframework.javapoet.ParameterizedTypeName;
-import org.springframework.javapoet.TypeName;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
+import org.springframework.util.StringUtils;
 
 /**
+ * {@link AotContributingBeanPostProcessor} handling {@link #getModulePrefix() prefixed} {@link ManagedTypes} instances.
+ * This allows to register store specific handling of discovered types.
+ *
  * @author Christoph Strobl
  * @since 3.0
  */
 public class AotManagedTypesPostProcessor implements AotContributingBeanPostProcessor, BeanFactoryAware {
 
+	private static final Log logger = LogFactory.getLog(AotManagedTypesPostProcessor.class);
+
 	private BeanFactory beanFactory;
+
+	@Nullable private String modulePrefix;
 
 	@Nullable
 	@Override
 	public BeanInstantiationContribution contribute(RootBeanDefinition beanDefinition, Class<?> beanType,
 			String beanName) {
 
-		if (!ClassUtils.isAssignable(ManagedTypes.class, beanType)) {
+		if (!ClassUtils.isAssignable(ManagedTypes.class, beanType) || !matchesPrefix(beanName)) {
 			return null;
 		}
 
-		ManagedTypes managedTypes = beanFactory.getBean(beanName, ManagedTypes.class);
-		return contribute(beanDefinition, managedTypes);
+		return contribute(AotContext.context(beanFactory), beanFactory.getBean(beanName, ManagedTypes.class));
 	}
 
-	protected ManagedTypesContribution contribute(BeanDefinition beanDefinition, ManagedTypes managedTypes) {
-		return new ManagedTypesContribution(beanDefinition, managedTypes, this::contributeType);
+	/**
+	 * Hook to provide a customized flavor of {@link BeanInstantiationContribution}. By overriding this method calls to
+	 * {@link #contributeType(ResolvableType, CodeContribution)} might no longer be issued.
+	 *
+	 * @param aotContext never {@literal null}.
+	 * @param managedTypes never {@literal null}.
+	 * @return new instance of {@link AotManagedTypesPostProcessor} or {@literal null} if nothing to do.
+	 */
+	@Nullable
+	protected BeanInstantiationContribution contribute(AotContext aotContext, ManagedTypes managedTypes) {
+		return new ManagedTypesContribution(aotContext, managedTypes, this::contributeType);
 	}
 
+	/**
+	 * Hook to contribute configuration for a given {@literal type}.
+	 *
+	 * @param type never {@literal null}.
+	 * @param contribution never {@literal null}.
+	 */
 	protected void contributeType(ResolvableType type, CodeContribution contribution) {
 
-		TypeContributor.contribute(type.toClass(), Collections.singleton("org.springframework.data"), contribution);
+		if (logger.isDebugEnabled()) {
+			logger.debug(String.format("Contributing type information for %s.", type.getType()));
+		}
+
+		TypeContributor.contribute(type.toClass(), Collections.singleton(TypeContributor.DATA_NAMESPACE), contribution);
 		TypeUtils.resolveUsedAnnotations(type.toClass()).forEach(annotation -> TypeContributor
-				.contribute(annotation.getType(), Collections.singleton("org.springframework.data"), contribution));
+				.contribute(annotation.getType(), Collections.singleton(TypeContributor.DATA_NAMESPACE), contribution));
 	}
 
-	protected String modulePrefix() {
-		return "";
+	protected boolean matchesPrefix(String beanName) {
+		return StringUtils.startsWithIgnoreCase(beanName, getModulePrefix());
+	}
+
+	public String getModulePrefix() {
+		return modulePrefix;
+	}
+
+	public void setModulePrefix(@Nullable String modulePrefix) {
+		this.modulePrefix = modulePrefix;
 	}
 
 	@Override
@@ -85,17 +114,19 @@ public class AotManagedTypesPostProcessor implements AotContributingBeanPostProc
 		this.beanFactory = beanFactory;
 	}
 
-	public static class ManagedTypesContribution implements BeanInstantiationContribution {
+	static class ManagedTypesContribution implements BeanInstantiationContribution {
 
-		private BeanDefinition beanDefinition;
+		private AotContext aotContext;
 		private ManagedTypes managedTypes;
 		private BiConsumer<ResolvableType, CodeContribution> contributionAction;
 
-		public ManagedTypesContribution(BeanDefinition beanDefinition, ManagedTypes managedTypes,
+		public ManagedTypesContribution(AotContext aotContext, ManagedTypes managedTypes,
 				BiConsumer<ResolvableType, CodeContribution> contributionAction) {
-			this.beanDefinition = beanDefinition;
+
+			this.aotContext = aotContext;
 			this.managedTypes = managedTypes;
 			this.contributionAction = contributionAction;
+
 		}
 
 		@Override
@@ -103,22 +134,6 @@ public class AotManagedTypesPostProcessor implements AotContributingBeanPostProc
 
 			List<Class<?>> types = new ArrayList<>(100);
 			managedTypes.forEach(types::add);
-
-			ValueHolder argumentValue = beanDefinition.getConstructorArgumentValues().getArgumentValue(0, Set.class);
-			if (argumentValue.getValue() instanceof Supplier) {
-
-				beanDefinition.getConstructorArgumentValues().clear();
-
-				ClassName set = ClassName.get("java.util", "LinkedHashSet");
-				ClassName typeArg = ClassName.get("java.lang", "Class");
-				TypeName setOfTypes = ParameterizedTypeName.get(set, typeArg);
-				contribution.statements().addStatement("$T managedTypes = new $T<>()", setOfTypes, set);
-				for (Class<?> managedType : types) {
-					contribution.statements().addStatement("managedTypes.add($T.class)", managedType);
-				}
-				contribution.statements().addStatement("bean.setTypes((Set) managedTypes)");
-			}
-
 			if (types.isEmpty()) {
 				return;
 			}
@@ -126,6 +141,10 @@ public class AotManagedTypesPostProcessor implements AotContributingBeanPostProc
 			TypeCollector.inspect(types).forEach(type -> {
 				contributionAction.accept(type, contribution);
 			});
+		}
+
+		public AotContext getAotContext() {
+			return aotContext;
 		}
 	}
 }
