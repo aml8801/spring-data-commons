@@ -50,6 +50,7 @@ class TypeContributor {
 	 * @param filter
 	 * @param contribution
 	 */
+	@SuppressWarnings("unchecked")
 	static void contribute(Class<?> type, Predicate<Class<? extends Annotation>> filter, CodeContribution contribution) {
 
 		if (type.isPrimitive()) {
@@ -58,9 +59,8 @@ class TypeContributor {
 
 		if (type.isAnnotation() && filter.test((Class<? extends Annotation>) type)) {
 
-			contribution.runtimeHints().reflection().registerType(type, hint -> {
-				hint.withMembers(MemberCategory.INTROSPECT_PUBLIC_METHODS);
-			});
+			contribution.runtimeHints().reflection().registerType(type, hint ->
+				hint.withMembers(MemberCategory.INTROSPECT_PUBLIC_METHODS));
 
 			// TODO: do we need this if meta annotated with SD annotation?
 			if (type.getPackage().getName().startsWith(DATA_NAMESPACE)) {
@@ -70,15 +70,13 @@ class TypeContributor {
 		}
 
 		if (type.isInterface()) {
-			contribution.runtimeHints().reflection().registerType(type, hint -> {
-				hint.withMembers(MemberCategory.INVOKE_PUBLIC_METHODS);
-			});
+			contribution.runtimeHints().reflection().registerType(type, hint ->
+				hint.withMembers(MemberCategory.INVOKE_PUBLIC_METHODS));
 			return;
 		}
 
-		contribution.runtimeHints().reflection().registerType(type, hint -> {
-			hint.withMembers(MemberCategory.INVOKE_DECLARED_CONSTRUCTORS, MemberCategory.INVOKE_PUBLIC_METHODS);
-		});
+		contribution.runtimeHints().reflection().registerType(type, hint ->
+			hint.withMembers(MemberCategory.INVOKE_DECLARED_CONSTRUCTORS, MemberCategory.INVOKE_PUBLIC_METHODS));
 	}
 
 	/**

@@ -22,43 +22,96 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.springframework.data.util.Lazy;
+import org.springframework.lang.NonNull;
 
 /**
  * Types managed by a Spring Data implementation. Used to predefine a set of know entities that might need processing
- * during container/repository initialization phase.
+ * during the Spring container, Spring Data Repository initialization phase.
  *
  * @author Christoph Strobl
+ * @see java.lang.FunctionalInterface
  * @since 3.0
  */
+@FunctionalInterface
 public interface ManagedTypes {
 
-	void forEach(Consumer<Class<?>> action);
-
-	default List<Class<?>> toList() {
-
-		List<Class<?>> tmp = new ArrayList<>(100);
-		forEach(tmp::add);
-		return tmp;
-	}
-
-	static ManagedTypes of(Iterable<? extends Class<?>> types) {
+	/**
+	 * Factory method used to construct {@link ManagedTypes} from the given {@link Iterable} of {@link Class types}.
+	 *
+	 * @param types {@link Iterable} of {@link Class types} used to initialize the new {@link ManagedTypes} instance;
+	 * must not be {@literal null}.
+	 * @return new instance of {@link ManagedTypes} initialized the given {@link Iterable} of {@link Class types}.
+	 * @see java.lang.Iterable
+	 * @see #of(Stream)
+	 * @see #of(Supplier)
+	 */
+	@NonNull
+	static ManagedTypes of(@NonNull Iterable<? extends Class<?>> types) {
 		return types::forEach;
 	}
 
-	static ManagedTypes of(Stream<? extends Class<?>> types) {
+	/**
+	 * Factory method used to construct {@link ManagedTypes} from the given {@link Stream} of {@link Class types}.
+	 *
+	 * @param types {@link Stream} of {@link Class types} used to initialize the new {@link ManagedTypes} instance;
+	 * must not be {@literal null}.
+	 * @return new instance of {@link ManagedTypes} initialized the given {@link Stream} of {@link Class types}.
+	 * @see java.util.stream.Stream
+	 * @see #of(Iterable)
+	 * @see #of(Supplier)
+	 */
+	@NonNull
+	static ManagedTypes of(@NonNull Stream<? extends Class<?>> types) {
 		return types::forEach;
 	}
 
-	static ManagedTypes o(Supplier<Iterable<? extends Class<?>>> dataProvider) {
+	/**
+	 * Factory method used to construct {@link ManagedTypes} from the given {@link Supplier} of
+	 * an {@link Iterable} of {@link Class types}.
+	 *
+	 * @param dataProvider {@link Supplier} of an {@link Iterable} of {@link Class types} used to lazily initialize
+	 * the new {@link ManagedTypes} instance; must not be {@literal null}.
+	 * @return new instance of {@link ManagedTypes} initialized the given {@link Supplier} of
+	 * an {@link Iterable} of {@link Class types}.
+	 * @see java.util.function.Supplier
+	 * @see java.lang.Iterable
+	 * @see #of(Iterable)
+	 * @see #of(Stream)
+	 */
+	@NonNull
+	static ManagedTypes of(@NonNull Supplier<Iterable<? extends Class<?>>> dataProvider) {
 
 		return new ManagedTypes() {
 
-			Lazy<Iterable<? extends Class<?>>> lazyProvider = Lazy.of(dataProvider);
+			final Lazy<Iterable<? extends Class<?>>> lazyProvider = Lazy.of(dataProvider);
 
 			@Override
-			public void forEach(Consumer<Class<?>> action) {
+			public void forEach(@NonNull Consumer<Class<?>> action) {
 				lazyProvider.get().forEach(action);
 			}
 		};
+	}
+
+	/**
+	 * Applies the given {@link Consumer action} to each of the {@link Class type} contained in
+	 * this {@link ManagedTypes} instance.
+	 *
+	 * @param action {@link Consumer} defining the action to perform on the {@link Class types}
+	 * contained in this {@link ManagedTypes} instance; must not be {@literal null}.
+	 * @see java.util.function.Consumer
+	 */
+	void forEach(Consumer<Class<?>> action);
+
+	/**
+	 * Returns all the {@link ManagedTypes} in a {@link List}.
+	 *
+	 * @return these {@link ManagedTypes} in a {@link List}; never {@literal null}.
+	 * @see java.util.List
+	 */
+	default List<Class<?>> toList() {
+
+		List<Class<?>> list = new ArrayList<>(100);
+		forEach(list::add);
+		return list;
 	}
 }

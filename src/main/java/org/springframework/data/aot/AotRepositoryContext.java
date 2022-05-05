@@ -22,22 +22,27 @@ import org.springframework.core.annotation.MergedAnnotation;
 import org.springframework.data.repository.core.RepositoryInformation;
 
 /**
+ * {@link AotContext} specific to Spring Data {@link org.springframework.data.repository.Repository} infrastructure.
+ *
  * @author Christoph Strobl
+ * @see AotContext
+ * @since 3.0
  */
 public interface AotRepositoryContext extends AotContext {
 
 	/**
-	 * @return the bean name of the repository / factory bean
+	 * @return the {@link String bean name} of the repository / factory bean.
 	 */
 	String getBeanName();
 
 	/**
-	 * @return base packages to look for repositories.
+	 * @return a {@link Set} of {@link String base packages} to search for repositories.
 	 */
 	Set<String> getBasePackages();
 
 	/**
-	 * @return metadata about the repository itself
+	 * @return {@link RepositoryInformation metadata} about the repository itself.
+	 * @see org.springframework.data.repository.core.RepositoryInformation
 	 */
 	RepositoryInformation getRepositoryInformation();
 
@@ -47,12 +52,13 @@ public interface AotRepositoryContext extends AotContext {
 	Set<Class<? extends Annotation>> getIdentifyingAnnotations();
 
 	/**
-	 * @return all types reachable from the repository.
+	 * @return all {@link Class types} reachable from the repository.
 	 */
 	Set<Class<?>> getResolvedTypes();
 
 	/**
-	 * @return all annotations reachable from the repository.
+	 * @return all {@link MergedAnnotation annotations} reachable from the repository.
+	 * @see org.springframework.core.annotation.MergedAnnotation
 	 */
 	Set<MergedAnnotation<Annotation>> getResolvedAnnotations();
 }
