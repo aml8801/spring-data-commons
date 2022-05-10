@@ -15,8 +15,11 @@
  */
 package org.springframework.data.aot;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -36,6 +39,7 @@ import org.springframework.data.ManagedTypes;
 class AotDataComponentsBeanFactoryPostProcessorUnitTests {
 
 	@Test // Gh-2593
+	@SuppressWarnings("all")
 	void replacesManagedTypesBeanDefinitionUsingSupplierForCtorValue() {
 
 		Supplier<Iterable<Class<?>>> typesSupplier = mock(Supplier.class);
@@ -46,7 +50,7 @@ class AotDataComponentsBeanFactoryPostProcessorUnitTests {
 		beanFactory.registerBeanDefinition("data.managed-types", BeanDefinitionBuilder
 				.rootBeanDefinition(ManagedTypes.class).addConstructorArgValue(typesSupplier).getBeanDefinition());
 
-		new AotDataComponentsBeanFactoryPostProcessor().contribute(beanFactory);
+		new AotDataComponentsBeanFactoryInitializationAotProcessor().processAheadOfTime(beanFactory);
 
 		assertThat(beanFactory.getBeanNamesForType(ManagedTypes.class)).hasSize(1);
 		verify(typesSupplier).get();
@@ -68,7 +72,7 @@ class AotDataComponentsBeanFactoryPostProcessorUnitTests {
 				.addConstructorArgValue(types).getBeanDefinition();
 		beanFactory.registerBeanDefinition("data.managed-types", sourceBD);
 
-		new AotDataComponentsBeanFactoryPostProcessor().contribute(beanFactory);
+		new AotDataComponentsBeanFactoryInitializationAotProcessor().processAheadOfTime(beanFactory);
 
 		assertThat(beanFactory.getBeanNamesForType(ManagedTypes.class)).hasSize(1);
 		verifyNoInteractions(types);

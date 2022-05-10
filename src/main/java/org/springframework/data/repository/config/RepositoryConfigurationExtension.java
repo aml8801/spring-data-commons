@@ -17,12 +17,14 @@ package org.springframework.data.repository.config;
 
 import java.util.Collection;
 
+import org.springframework.beans.factory.aot.BeanRegistrationAotContribution;
+import org.springframework.beans.factory.aot.BeanRegistrationAotProcessor;
 import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.beans.factory.generator.AotContributingBeanPostProcessor;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.core.io.ResourceLoader;
-import org.springframework.data.aot.AotContributingRepositoryBeanPostProcessor;
+import org.springframework.data.aot.RepositoryRegistrationAotProcessor;
+import org.springframework.lang.NonNull;
 import org.springframework.util.StringUtils;
 
 /**
@@ -36,8 +38,6 @@ public interface RepositoryConfigurationExtension {
 
 	/**
 	 * Returns the descriptive name of the module.
-	 *
-	 * @return
 	 */
 	default String getModuleName() {
 		return StringUtils.capitalize(getModulePrefix());
@@ -48,12 +48,14 @@ public interface RepositoryConfigurationExtension {
 	/**
 	 * Returns all {@link RepositoryConfiguration}s obtained through the given {@link RepositoryConfigurationSource}.
 	 *
-	 * @param configSource
-	 * @param loader
+	 * @param configSource {@link RepositoryConfigurationSource} encapsulating the source (XML, Annotation) of
+	 * the repository configuration.
+	 * @param loader {@link ResourceLoader} used to load resources.
 	 * @param strictMatchesOnly whether to return strict repository matches only. Handing in {@literal true} will cause
 	 *          the repository interfaces and domain types handled to be checked whether they are managed by the current
 	 *          store.
-	 * @return
+	 * @return a {@link Collection} of {@link RepositoryConfiguration RepositoryConfigurations}.
+	 * @see org.springframework.data.repository.config.RepositoryConfiguration
 	 * @since 1.9
 	 */
 	<T extends RepositoryConfigurationSource> Collection<RepositoryConfiguration<T>> getRepositoryConfigurations(
@@ -67,19 +69,24 @@ public interface RepositoryConfigurationExtension {
 	String getDefaultNamedQueryLocation();
 
 	/**
-	 * Returns the name of the repository factory class to be used.
+	 * Returns the {@link String name} of the repository factory class to be used.
 	 *
-	 * @return
+	 * @return the {@link String name} of the repository factory class to be used.
 	 */
 	String getRepositoryFactoryBeanClassName();
 
 	/**
-	 * @return the {@link AotContributingBeanPostProcessor} type responsible for contributing AOT/native configuration.
-	 *         Defaults to {@link AotContributingRepositoryBeanPostProcessor}. Must not be {@literal null}
+	 * Returns the {@link BeanRegistrationAotContribution} type responsible for contributing AOT/native configuration
+	 * for the Spring Data Repository infrastructure.
+	 *
+	 * @return the {@link BeanRegistrationAotContribution} type responsible for contributing AOT/native configuration.
+	 * Defaults to {@link RepositoryRegistrationAotProcessor}. Must not be {@literal null}.
+	 * @see org.springframework.beans.factory.aot.BeanRegistrationAotProcessor
 	 * @since 3.0
 	 */
-	default Class<? extends AotContributingBeanPostProcessor> getAotPostProcessor() {
-		return AotContributingRepositoryBeanPostProcessor.class;
+	@NonNull
+	default Class<? extends BeanRegistrationAotProcessor> getRepositoryAotProcessor() {
+		return RepositoryRegistrationAotProcessor.class;
 	}
 
 	/**
@@ -87,8 +94,9 @@ public interface RepositoryConfigurationExtension {
 	 * beans you have to set up once independently of the number of repositories to be created. Will be called before any
 	 * repositories bean definitions have been registered.
 	 *
-	 * @param registry
-	 * @param configurationSource
+	 * @param registry {@link BeanDefinitionRegistry} containing bean definitions.
+	 * @param configurationSource {@link RepositoryConfigurationSource} encapsulating the source (e.g. XML, Annotation)
+	 * of the repository configuration.
 	 */
 	void registerBeansForRoot(BeanDefinitionRegistry registry, RepositoryConfigurationSource configurationSource);
 
@@ -116,4 +124,5 @@ public interface RepositoryConfigurationExtension {
 	 * @param config will never be {@literal null}.
 	 */
 	void postProcess(BeanDefinitionBuilder builder, XmlRepositoryConfigurationSource config);
+
 }

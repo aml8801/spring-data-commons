@@ -21,13 +21,14 @@ import java.util.function.BiConsumer;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
-import org.springframework.aot.generator.CodeContribution;
+import org.springframework.aot.generate.GenerationContext;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
-import org.springframework.beans.factory.generator.AotContributingBeanPostProcessor;
-import org.springframework.beans.factory.generator.BeanInstantiationContribution;
+import org.springframework.beans.factory.aot.BeanRegistrationAotContribution;
+import org.springframework.beans.factory.aot.BeanRegistrationAotProcessor;
+import org.springframework.beans.factory.aot.BeanRegistrationCode;
+import org.springframework.beans.factory.support.RegisteredBean;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.core.ResolvableType;
 import org.springframework.data.ManagedTypes;
@@ -37,15 +38,16 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
 /**
- * {@link AotContributingBeanPostProcessor} handling {@link #getModulePrefix() prefixed} {@link ManagedTypes} instances.
+ * {@link BeanRegistrationAotProcessor} handling {@link #getModulePrefix() prefixed} {@link ManagedTypes} instances.
  * This allows to register store specific handling of discovered types.
  *
  * @author Christoph Strobl
+ * @author John Blum
  * @see org.springframework.beans.factory.BeanFactoryAware
- * @see org.springframework.beans.factory.generator.AotContributingBeanPostProcessor
+ * @see org.springframework.beans.factory.aot.BeanRegistrationAotProcessor
  * @since 3.0
  */
-public class AotManagedTypesPostProcessor implements AotContributingBeanPostProcessor, BeanFactoryAware {
+public class AotManagedTypesPostProcessor implements BeanRegistrationAotProcessor, BeanFactoryAware {
 
 	private static final Log logger = LogFactory.getLog(AotManagedTypesPostProcessor.class);
 
@@ -54,9 +56,13 @@ public class AotManagedTypesPostProcessor implements AotContributingBeanPostProc
 	@Nullable
 	private String modulePrefix;
 
-	@Nullable
 	@Override
-	public BeanInstantiationContribution contribute(@NonNull RootBeanDefinition beanDefinition,
+	public BeanRegistrationAotContribution processAheadOfTime(@NonNull RegisteredBean registeredBean) {
+		return contribute(registeredBean.getMergedBeanDefinition(), registeredBean.getBeanClass(), registeredBean.getBeanName());
+	}
+
+	@Nullable
+	protected BeanRegistrationAotContribution contribute(@NonNull RootBeanDefinition beanDefinition,
 			@NonNull Class<?> beanType, @NonNull String beanName) {
 
 		return isMatch(beanType, beanName)
@@ -77,15 +83,15 @@ public class AotManagedTypesPostProcessor implements AotContributingBeanPostProc
 	}
 
 	/**
-	 * Hook to provide a customized flavor of {@link BeanInstantiationContribution}. By overriding this method calls to
-	 * {@link #contributeType(ResolvableType, CodeContribution)} might no longer be issued.
+	 * Hook to provide a customized flavor of {@link BeanRegistrationAotContribution}. By overriding this method
+	 * calls to {@link #contributeType(ResolvableType, GenerationContext)} might no longer be issued.
 	 *
 	 * @param aotContext never {@literal null}.
 	 * @param managedTypes never {@literal null}.
 	 * @return new instance of {@link AotManagedTypesPostProcessor} or {@literal null} if nothing to do.
 	 */
 	@Nullable
-	protected BeanInstantiationContribution contribute(AotContext aotContext, ManagedTypes managedTypes) {
+	protected BeanRegistrationAotContribution contribute(AotContext aotContext, ManagedTypes managedTypes) {
 		return new ManagedTypesContribution(aotContext, managedTypes, this::contributeType);
 	}
 
@@ -93,17 +99,17 @@ public class AotManagedTypesPostProcessor implements AotContributingBeanPostProc
 	 * Hook to contribute configuration for a given {@literal type}.
 	 *
 	 * @param type never {@literal null}.
-	 * @param contribution never {@literal null}.
+	 * @param generationContext never {@literal null}.
 	 */
-	protected void contributeType(ResolvableType type, CodeContribution contribution) {
+	protected void contributeType(ResolvableType type, GenerationContext generationContext) {
 
 		if (logger.isDebugEnabled()) {
 			logger.debug(String.format("Contributing type information for [%s].", type.getType()));
 		}
 
-		TypeContributor.contribute(type.toClass(), Collections.singleton(TypeContributor.DATA_NAMESPACE), contribution);
+		TypeContributor.contribute(type.toClass(), Collections.singleton(TypeContributor.DATA_NAMESPACE), generationContext);
 		TypeUtils.resolveUsedAnnotations(type.toClass()).forEach(annotation -> TypeContributor
-				.contribute(annotation.getType(), Collections.singleton(TypeContributor.DATA_NAMESPACE), contribution));
+				.contribute(annotation.getType(), Collections.singleton(TypeContributor.DATA_NAMESPACE), generationContext));
 	}
 
 	@Nullable
@@ -116,23 +122,18 @@ public class AotManagedTypesPostProcessor implements AotContributingBeanPostProc
 	}
 
 	@Override
-	public int getOrder() {
-		return 0;
-	}
-
-	@Override
 	public void setBeanFactory(@NonNull BeanFactory beanFactory) throws BeansException {
 		this.beanFactory = beanFactory;
 	}
 
-	static class ManagedTypesContribution implements BeanInstantiationContribution {
+	static class ManagedTypesContribution implements BeanRegistrationAotContribution {
 
 		private final AotContext aotContext;
 		private final ManagedTypes managedTypes;
-		private final BiConsumer<ResolvableType, CodeContribution> contributionAction;
+		private final BiConsumer<ResolvableType, GenerationContext> contributionAction;
 
 		public ManagedTypesContribution(AotContext aotContext, ManagedTypes managedTypes,
-				BiConsumer<ResolvableType, CodeContribution> contributionAction) {
+				BiConsumer<ResolvableType, GenerationContext> contributionAction) {
 
 			this.aotContext = aotContext;
 			this.managedTypes = managedTypes;
@@ -148,12 +149,13 @@ public class AotManagedTypesPostProcessor implements AotContributingBeanPostProc
 		}
 
 		@Override
-		public void applyTo(@NonNull CodeContribution contribution) {
+		public void applyTo(@NonNull GenerationContext generationContext,
+				@NonNull BeanRegistrationCode beanRegistrationCode) {
 
 			List<Class<?>> types = getManagedTypes().toList();
 
 			if (!types.isEmpty()) {
-				TypeCollector.inspect(types).forEach(type -> contributionAction.accept(type, contribution));
+				TypeCollector.inspect(types).forEach(type -> contributionAction.accept(type, generationContext));
 			}
 		}
 	}

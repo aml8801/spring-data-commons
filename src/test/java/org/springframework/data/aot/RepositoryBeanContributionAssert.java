@@ -15,15 +15,17 @@
  */
 package org.springframework.data.aot;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.function.Consumer;
 
 import org.assertj.core.api.AbstractAssert;
-import org.springframework.aot.generator.CodeContribution;
-import org.springframework.aot.generator.DefaultCodeContribution;
+
+import org.springframework.aot.generate.ClassNameGenerator;
+import org.springframework.aot.generate.DefaultGenerationContext;
+import org.springframework.aot.generate.InMemoryGeneratedFiles;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.data.repository.core.RepositoryInformation;
 import org.springframework.data.repository.core.support.RepositoryFragment;
@@ -68,8 +70,9 @@ public class RepositoryBeanContributionAssert
 
 	public RepositoryBeanContributionAssert codeContributionSatisfies(Consumer<CodeContributionAssert> consumer) {
 
-		DefaultCodeContribution codeContribution = new DefaultCodeContribution(new RuntimeHints());
-		this.actual.applyTo(codeContribution);
+		DefaultGenerationContext codeContribution =
+				new DefaultGenerationContext(new ClassNameGenerator(), new InMemoryGeneratedFiles(), new RuntimeHints());
+		this.actual.applyTo(codeContribution, null);
 		consumer.accept(new CodeContributionAssert(codeContribution));
 		return this;
 	}
@@ -80,7 +83,4 @@ public class RepositoryBeanContributionAssert
 				.describedAs("No repository interface found on null repository information.").isNotNull();
 		return this.actual.getRepositoryInformation();
 	}
-
-
-
 }

@@ -25,6 +25,7 @@ import org.springframework.data.repository.core.RepositoryInformation;
  * {@link AotContext} specific to Spring Data {@link org.springframework.data.repository.Repository} infrastructure.
  *
  * @author Christoph Strobl
+ * @author John Blum
  * @see AotContext
  * @since 3.0
  */
@@ -41,24 +42,25 @@ public interface AotRepositoryContext extends AotContext {
 	Set<String> getBasePackages();
 
 	/**
+	 * @return the {@link Annotation} types used to identify domain types.
+	 */
+	Set<Class<? extends Annotation>> getIdentifyingAnnotations();
+
+	/**
 	 * @return {@link RepositoryInformation metadata} about the repository itself.
 	 * @see org.springframework.data.repository.core.RepositoryInformation
 	 */
 	RepositoryInformation getRepositoryInformation();
 
 	/**
-	 * @return the {@link Annotation} types used to identify domain types.
+	 * @return all {@link MergedAnnotation annotations} reachable from the repository.
+	 * @see org.springframework.core.annotation.MergedAnnotation
 	 */
-	Set<Class<? extends Annotation>> getIdentifyingAnnotations();
+	Set<MergedAnnotation<Annotation>> getResolvedAnnotations();
 
 	/**
 	 * @return all {@link Class types} reachable from the repository.
 	 */
 	Set<Class<?>> getResolvedTypes();
 
-	/**
-	 * @return all {@link MergedAnnotation annotations} reachable from the repository.
-	 * @see org.springframework.core.annotation.MergedAnnotation
-	 */
-	Set<MergedAnnotation<Annotation>> getResolvedAnnotations();
 }
