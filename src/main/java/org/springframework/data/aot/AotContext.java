@@ -171,8 +171,8 @@ public interface AotContext {
 	default Optional<Class<?>> resolveType(@NonNull String typeName) {
 
 		return isTypePresent(typeName)
-			? Optional.of(resolveRequiredType(typeName))
-			: Optional.empty();
+				? Optional.of(resolveRequiredType(typeName))
+				: Optional.empty();
 	}
 
 	/**

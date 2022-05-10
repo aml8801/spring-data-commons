@@ -33,17 +33,41 @@ import org.springframework.util.StringUtils;
  * @see RepositoryConfigurationExtensionSupport
  * @author Oliver Gierke
  * @author Christoph Strobl
+ * @author John Blum
  */
 public interface RepositoryConfigurationExtension {
 
 	/**
-	 * Returns the descriptive name of the module.
+	 * Returns a descriptive {@link String name} for the module.
+	 *
+	 * @return a descriptive {@link String name} for the module.
+	 * @see #getModulePrefix()
 	 */
 	default String getModuleName() {
 		return StringUtils.capitalize(getModulePrefix());
 	}
 
+	/**
+	 * Returns a {@link String prefix} identifying the module.
+	 *
+	 * @return a {@link String prefix} identifying the module.
+	 * @see #getModuleName()
+	 */
 	String getModulePrefix();
+
+	/**
+	 * Returns the {@link BeanRegistrationAotProcessor} type responsible for contributing AOT/native configuration
+	 * required by the Spring Data Repository infrastructure components at native runtime.
+	 *
+	 * @return the {@link BeanRegistrationAotProcessor} type responsible for contributing AOT/native configuration.
+	 * Defaults to {@link RepositoryRegistrationAotProcessor}. Must not be {@literal null}.
+	 * @see org.springframework.beans.factory.aot.BeanRegistrationAotProcessor
+	 * @since 3.0
+	 */
+	@NonNull
+	default Class<? extends BeanRegistrationAotProcessor> getRepositoryAotProcessor() {
+		return RepositoryRegistrationAotProcessor.class;
+	}
 
 	/**
 	 * Returns all {@link RepositoryConfiguration}s obtained through the given {@link RepositoryConfigurationSource}.
@@ -62,13 +86,6 @@ public interface RepositoryConfigurationExtension {
 			T configSource, ResourceLoader loader, boolean strictMatchesOnly);
 
 	/**
-	 * Returns the default location of the Spring Data named queries.
-	 *
-	 * @return must not be {@literal null} or empty.
-	 */
-	String getDefaultNamedQueryLocation();
-
-	/**
 	 * Returns the {@link String name} of the repository factory class to be used.
 	 *
 	 * @return the {@link String name} of the repository factory class to be used.
@@ -76,18 +93,11 @@ public interface RepositoryConfigurationExtension {
 	String getRepositoryFactoryBeanClassName();
 
 	/**
-	 * Returns the {@link BeanRegistrationAotContribution} type responsible for contributing AOT/native configuration
-	 * for the Spring Data Repository infrastructure.
+	 * Returns the default location of the Spring Data named queries.
 	 *
-	 * @return the {@link BeanRegistrationAotContribution} type responsible for contributing AOT/native configuration.
-	 * Defaults to {@link RepositoryRegistrationAotProcessor}. Must not be {@literal null}.
-	 * @see org.springframework.beans.factory.aot.BeanRegistrationAotProcessor
-	 * @since 3.0
+	 * @return must not be {@literal null} or empty.
 	 */
-	@NonNull
-	default Class<? extends BeanRegistrationAotProcessor> getRepositoryAotProcessor() {
-		return RepositoryRegistrationAotProcessor.class;
-	}
+	String getDefaultNamedQueryLocation();
 
 	/**
 	 * Callback to register additional bean definitions for a {@literal repositories} root node. This usually includes

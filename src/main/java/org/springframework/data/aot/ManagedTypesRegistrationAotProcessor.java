@@ -16,18 +16,17 @@
 package org.springframework.data.aot;
 
 import java.util.Collections;
-import java.util.List;
-import java.util.function.BiConsumer;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.springframework.aot.generate.GenerationContext;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.aot.BeanRegistrationAotContribution;
 import org.springframework.beans.factory.aot.BeanRegistrationAotProcessor;
-import org.springframework.beans.factory.aot.BeanRegistrationCode;
 import org.springframework.beans.factory.support.RegisteredBean;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.core.ResolvableType;
@@ -38,8 +37,8 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
 /**
- * {@link BeanRegistrationAotProcessor} handling {@link #getModulePrefix() prefixed} {@link ManagedTypes} instances.
- * This allows to register store specific handling of discovered types.
+ * {@link BeanRegistrationAotProcessor} handling {@link #getModulePrefix() module prefixed} {@link ManagedTypes}
+ * instances. This AOT processor allows store specific handling of discovered types to be registered.
  *
  * @author Christoph Strobl
  * @author John Blum
@@ -47,9 +46,9 @@ import org.springframework.util.StringUtils;
  * @see org.springframework.beans.factory.aot.BeanRegistrationAotProcessor
  * @since 3.0
  */
-public class AotManagedTypesPostProcessor implements BeanRegistrationAotProcessor, BeanFactoryAware {
+public class ManagedTypesRegistrationAotProcessor implements BeanRegistrationAotProcessor, BeanFactoryAware {
 
-	private static final Log logger = LogFactory.getLog(AotManagedTypesPostProcessor.class);
+	private final Log logger = LogFactory.getLog(getClass());
 
 	private BeanFactory beanFactory;
 
@@ -62,6 +61,7 @@ public class AotManagedTypesPostProcessor implements BeanRegistrationAotProcesso
 	}
 
 	@Nullable
+	@SuppressWarnings("unused")
 	protected BeanRegistrationAotContribution contribute(@NonNull RootBeanDefinition beanDefinition,
 			@NonNull Class<?> beanType, @NonNull String beanName) {
 
@@ -88,11 +88,11 @@ public class AotManagedTypesPostProcessor implements BeanRegistrationAotProcesso
 	 *
 	 * @param aotContext never {@literal null}.
 	 * @param managedTypes never {@literal null}.
-	 * @return new instance of {@link AotManagedTypesPostProcessor} or {@literal null} if nothing to do.
+	 * @return new instance of {@link ManagedTypesRegistrationAotProcessor} or {@literal null} if nothing to do.
 	 */
 	@Nullable
 	protected BeanRegistrationAotContribution contribute(AotContext aotContext, ManagedTypes managedTypes) {
-		return new ManagedTypesContribution(aotContext, managedTypes, this::contributeType);
+		return new ManagedTypesRegistrationAotContribution(aotContext, managedTypes, this::contributeType);
 	}
 
 	/**
@@ -104,21 +104,15 @@ public class AotManagedTypesPostProcessor implements BeanRegistrationAotProcesso
 	protected void contributeType(ResolvableType type, GenerationContext generationContext) {
 
 		if (logger.isDebugEnabled()) {
-			logger.debug(String.format("Contributing type information for [%s].", type.getType()));
+			logger.debug(String.format("Contributing type information for [%s]", type.getType()));
 		}
 
-		TypeContributor.contribute(type.toClass(), Collections.singleton(TypeContributor.DATA_NAMESPACE), generationContext);
-		TypeUtils.resolveUsedAnnotations(type.toClass()).forEach(annotation -> TypeContributor
-				.contribute(annotation.getType(), Collections.singleton(TypeContributor.DATA_NAMESPACE), generationContext));
-	}
+		Set<String> annotationNamespaces = Collections.singleton(TypeContributor.DATA_NAMESPACE);
 
-	@Nullable
-	public String getModulePrefix() {
-		return modulePrefix;
-	}
+		TypeContributor.contribute(type.toClass(), annotationNamespaces, generationContext);
 
-	public void setModulePrefix(@Nullable String modulePrefix) {
-		this.modulePrefix = modulePrefix;
+		TypeUtils.resolveUsedAnnotations(type.toClass()).forEach(annotation ->
+				TypeContributor.contribute(annotation.getType(), annotationNamespaces, generationContext));
 	}
 
 	@Override
@@ -126,37 +120,12 @@ public class AotManagedTypesPostProcessor implements BeanRegistrationAotProcesso
 		this.beanFactory = beanFactory;
 	}
 
-	static class ManagedTypesContribution implements BeanRegistrationAotContribution {
+	public void setModulePrefix(@Nullable String modulePrefix) {
+		this.modulePrefix = modulePrefix;
+	}
 
-		private final AotContext aotContext;
-		private final ManagedTypes managedTypes;
-		private final BiConsumer<ResolvableType, GenerationContext> contributionAction;
-
-		public ManagedTypesContribution(AotContext aotContext, ManagedTypes managedTypes,
-				BiConsumer<ResolvableType, GenerationContext> contributionAction) {
-
-			this.aotContext = aotContext;
-			this.managedTypes = managedTypes;
-			this.contributionAction = contributionAction;
-		}
-
-		public AotContext getAotContext() {
-			return aotContext;
-		}
-
-		public ManagedTypes getManagedTypes() {
-			return managedTypes;
-		}
-
-		@Override
-		public void applyTo(@NonNull GenerationContext generationContext,
-				@NonNull BeanRegistrationCode beanRegistrationCode) {
-
-			List<Class<?>> types = getManagedTypes().toList();
-
-			if (!types.isEmpty()) {
-				TypeCollector.inspect(types).forEach(type -> contributionAction.accept(type, generationContext));
-			}
-		}
+	@Nullable
+	public String getModulePrefix() {
+		return this.modulePrefix;
 	}
 }

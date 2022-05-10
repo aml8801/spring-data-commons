@@ -62,21 +62,21 @@ class DefaultAotRepositoryContext implements AotRepositoryContext {
 	}
 
 	@Override
-	public String getBeanName() {
-		return beanName;
-	}
-
-	public void setBeanName(String beanName) {
-		this.beanName = beanName;
-	}
-
-	@Override
 	public Set<String> getBasePackages() {
 		return basePackages;
 	}
 
 	public void setBasePackages(Set<String> basePackages) {
 		this.basePackages = basePackages;
+	}
+
+	@Override
+	public String getBeanName() {
+		return beanName;
+	}
+
+	public void setBeanName(String beanName) {
+		this.beanName = beanName;
 	}
 
 	@Override
@@ -110,8 +110,8 @@ class DefaultAotRepositoryContext implements AotRepositoryContext {
 	protected Set<MergedAnnotation<Annotation>> discoverAnnotations() {
 
 		Set<MergedAnnotation<Annotation>> annotations = getResolvedTypes().stream()
-			.flatMap(type -> TypeUtils.resolveUsedAnnotations(type).stream())
-			.collect(Collectors.toCollection(LinkedHashSet::new));
+				.flatMap(type -> TypeUtils.resolveUsedAnnotations(type).stream())
+				.collect(Collectors.toCollection(LinkedHashSet::new));
 
 		annotations.addAll(TypeUtils.resolveUsedAnnotations(repositoryInformation.getRepositoryInterface()));
 

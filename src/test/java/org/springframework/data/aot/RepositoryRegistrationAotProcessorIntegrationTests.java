@@ -16,7 +16,7 @@
 package org.springframework.data.aot;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.data.aot.RepositoryBeanContributionAssert.assertThatContribution;
+import static org.springframework.data.aot.RepositoryRegistrationAotContributionAssert.assertThatContribution;
 
 import java.io.Serializable;
 
@@ -24,7 +24,8 @@ import org.junit.jupiter.api.Test;
 
 import org.springframework.aop.SpringProxy;
 import org.springframework.aop.framework.Advised;
-import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.aot.BeanRegistrationAotContribution;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.beans.factory.support.RegisteredBean;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.DecoratingProxy;
@@ -47,14 +48,20 @@ import org.springframework.data.repository.reactive.ReactiveSortingRepository;
 import org.springframework.transaction.interceptor.TransactionalProxy;
 
 /**
+ * Integration Tests for {@link RepositoryRegistrationAotProcessor}.
+ *
  * @author Christoph Strobl
+ * @see org.junit.jupiter.api.Test
+ * @see org.springframework.data.aot.RepositoryRegistrationAotProcessor
+ * @see org.springframework.data.aot.RepositoryRegistrationAotContributionAssert
+ * @author John Blum
  */
-public class RepositoryRegistrationAotProcessorTests {
+public class RepositoryRegistrationAotProcessorIntegrationTests {
 
 	@Test // GH-2593
 	void simpleRepositoryNoTxManagerNoKotlinNoReactiveNoComponent() {
 
-		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(ConfigWithSimpleCrudRepository.class)
+		RepositoryRegistrationAotContribution repositoryBeanContribution = computeAotConfiguration(ConfigWithSimpleCrudRepository.class)
 				.forRepository(ConfigWithSimpleCrudRepository.MyRepo.class);
 
 		assertThatContribution(repositoryBeanContribution) //
@@ -76,7 +83,7 @@ public class RepositoryRegistrationAotProcessorTests {
 	@Test // GH-2593
 	void simpleRepositoryWithTxManagerNoKotlinNoReactiveNoComponent() {
 
-		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(
+		RepositoryRegistrationAotContribution repositoryBeanContribution = computeAotConfiguration(
 				ConfigWithTransactionManagerPresent.class).forRepository(ConfigWithTransactionManagerPresent.MyTxRepo.class);
 
 		assertThatContribution(repositoryBeanContribution) //
@@ -101,7 +108,7 @@ public class RepositoryRegistrationAotProcessorTests {
 	@Test // GH-2593
 	void simpleRepositoryWithTxManagerNoKotlinNoReactiveButComponent() {
 
-		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(
+		RepositoryRegistrationAotContribution repositoryBeanContribution = computeAotConfiguration(
 				ConfigWithTransactionManagerPresentAndAtComponentAnnotatedRepoisoty.class)
 						.forRepository(ConfigWithTransactionManagerPresentAndAtComponentAnnotatedRepoisoty.MyComponentTxRepo.class);
 
@@ -135,7 +142,7 @@ public class RepositoryRegistrationAotProcessorTests {
 	@Test // GH-2593
 	void contributesFragmentsCorrectly() {
 
-		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(ConfigWithFragments.class)
+		RepositoryRegistrationAotContribution repositoryBeanContribution = computeAotConfiguration(ConfigWithFragments.class)
 				.forRepository(ConfigWithFragments.RepositoryWithFragments.class);
 
 		assertThatContribution(repositoryBeanContribution) //
@@ -168,7 +175,7 @@ public class RepositoryRegistrationAotProcessorTests {
 	@Test // GH-2593
 	void contributesCustomImplementationCorrectly() {
 
-		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(ConfigWithCustomImplementation.class)
+		RepositoryRegistrationAotContribution repositoryBeanContribution = computeAotConfiguration(ConfigWithCustomImplementation.class)
 				.forRepository(ConfigWithCustomImplementation.RepositoryWithCustomImplementation.class);
 
 		assertThatContribution(repositoryBeanContribution) //
@@ -188,21 +195,21 @@ public class RepositoryRegistrationAotProcessorTests {
 	}
 
 	@Test // GH-2593
-	void contributesDomainTypeAndReachablesCorrectly() {
+	void contributesDomainTypeAndReachableTypesCorrectly() {
 
-		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(ConfigWithSimpleCrudRepository.class)
-				.forRepository(ConfigWithSimpleCrudRepository.MyRepo.class);
+		RepositoryRegistrationAotContribution repositoryBeanContribution =
+				computeAotConfiguration(ConfigWithSimpleCrudRepository.class)
+						.forRepository(ConfigWithSimpleCrudRepository.MyRepo.class);
 
-		assertThatContribution(repositoryBeanContribution)
-				.codeContributionSatisfies(contribution ->
-						contribution.contributesReflectionFor(ConfigWithSimpleCrudRepository.Person.class,
-								ConfigWithSimpleCrudRepository.Address.class));
+		assertThatContribution(repositoryBeanContribution).codeContributionSatisfies(contribution ->
+				contribution.contributesReflectionFor(ConfigWithSimpleCrudRepository.Person.class,
+						ConfigWithSimpleCrudRepository.Address.class));
 	}
 
 	@Test // GH-2593
 	void contributesReactiveRepositoryCorrectly() {
 
-		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(ReactiveConfig.class)
+		RepositoryRegistrationAotContribution repositoryBeanContribution = computeAotConfiguration(ReactiveConfig.class)
 				.forRepository(ReactiveConfig.CustomerRepositoryReactive.class);
 
 		assertThatContribution(repositoryBeanContribution) //
@@ -219,7 +226,7 @@ public class RepositoryRegistrationAotProcessorTests {
 	@Test // GH-2593
 	void contributesRepositoryBaseClassCorrectly() {
 
-		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(
+		RepositoryRegistrationAotContribution repositoryBeanContribution = computeAotConfiguration(
 				ConfigWithCustomRepositoryBaseClass.class)
 						.forRepository(ConfigWithCustomRepositoryBaseClass.CustomerRepositoryWithCustomBaseRepo.class);
 
@@ -238,7 +245,7 @@ public class RepositoryRegistrationAotProcessorTests {
 	@Test // GH-2593
 	void contributesTypesFromQueryMethods() {
 
-		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(ConfigWithQueryMethods.class)
+		RepositoryRegistrationAotContribution repositoryBeanContribution = computeAotConfiguration(ConfigWithQueryMethods.class)
 				.forRepository(ConfigWithQueryMethods.CustomerRepositoryWithQueryMethods.class);
 
 		assertThatContribution(repositoryBeanContribution)
@@ -249,7 +256,7 @@ public class RepositoryRegistrationAotProcessorTests {
 	@Test // GH-2593
 	void contributesProxiesForPotentialProjections() {
 
-		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(ConfigWithQueryMethods.class)
+		RepositoryRegistrationAotContribution repositoryBeanContribution = computeAotConfiguration(ConfigWithQueryMethods.class)
 				.forRepository(ConfigWithQueryMethods.CustomerRepositoryWithQueryMethods.class);
 
 		assertThatContribution(repositoryBeanContribution) //
@@ -264,7 +271,7 @@ public class RepositoryRegistrationAotProcessorTests {
 	@Test // GH-2593
 	void contributesProxiesForDataAnnotations() {
 
-		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(ConfigWithQueryMethods.class)
+		RepositoryRegistrationAotContribution repositoryBeanContribution = computeAotConfiguration(ConfigWithQueryMethods.class)
 				.forRepository(ConfigWithQueryMethods.CustomerRepositoryWithQueryMethods.class);
 
 		assertThatContribution(repositoryBeanContribution) //
@@ -279,7 +286,7 @@ public class RepositoryRegistrationAotProcessorTests {
 	@Test // GH-2593
 	void doesNotCareAboutNonDataAnnotations() {
 
-		RepositoryBeanContribution repositoryBeanContribution = computeConfiguration(ConfigWithSimpleCrudRepository.class)
+		RepositoryRegistrationAotContribution repositoryBeanContribution = computeAotConfiguration(ConfigWithSimpleCrudRepository.class)
 				.forRepository(ConfigWithSimpleCrudRepository.MyRepo.class);
 
 		assertThatContribution(repositoryBeanContribution) //
@@ -289,36 +296,46 @@ public class RepositoryRegistrationAotProcessorTests {
 				});
 	}
 
-	BeanContributionBuilder computeConfiguration(Class<?> configuration, AnnotationConfigApplicationContext ctx) {
+	RepositoryRegistrationAotContributionBuilder computeAotConfiguration(Class<?> configuration) {
+		return computeAotConfiguration(configuration, new AnnotationConfigApplicationContext());
+	}
 
-		ctx.register(configuration);
-		ctx.refreshForAotProcessing();
+	RepositoryRegistrationAotContributionBuilder computeAotConfiguration(Class<?> configuration,
+			AnnotationConfigApplicationContext applicationContext) {
 
-		return type -> {
+		applicationContext.register(configuration);
+		applicationContext.refreshForAotProcessing();
 
-			String[] repoBeanNames = ctx.getBeanNamesForType(type);
-			assertThat(repoBeanNames).describedAs("Unable to find repository %s in configuration %s.", type, configuration)
+		return repositoryType -> {
+
+			String[] repositoryBeanNames = applicationContext.getBeanNamesForType(repositoryType);
+
+			assertThat(repositoryBeanNames)
+					.describedAs("Unable to find repository [%s] in configuration [%s]",
+							repositoryType, configuration)
 					.hasSize(1);
 
-			String beanName = repoBeanNames[0];
+			String repositoryBeanName = repositoryBeanNames[0];
 
-			RepositoryRegistrationAotProcessor aotProcessor = ctx
-					.getBean(RepositoryRegistrationAotProcessor.class);
+			ConfigurableBeanFactory beanFactory = applicationContext.getDefaultListableBeanFactory();
 
-			aotProcessor.setBeanFactory(ctx.getDefaultListableBeanFactory());
+			RepositoryRegistrationAotProcessor repositoryAotProcessor =
+					applicationContext.getBean(RepositoryRegistrationAotProcessor.class);
 
-			RegisteredBean bean = RegisteredBean.of(ctx.getBeanFactory(), beanName);
+			repositoryAotProcessor.setBeanFactory(beanFactory);
 
-			return (RepositoryBeanContribution) aotProcessor.processAheadOfTime(bean);
+			RegisteredBean bean = RegisteredBean.of(beanFactory, repositoryBeanName);
+
+			BeanRegistrationAotContribution beanContribution = repositoryAotProcessor.processAheadOfTime(bean);
+
+			assertThat(beanContribution).isInstanceOf(RepositoryRegistrationAotContribution.class);
+
+			return (RepositoryRegistrationAotContribution) beanContribution;
 		};
 	}
 
-	BeanContributionBuilder computeConfiguration(Class<?> configuration) {
-		return computeConfiguration(configuration, new AnnotationConfigApplicationContext());
-	}
-
 	@FunctionalInterface
-	interface BeanContributionBuilder {
-		RepositoryBeanContribution forRepository(Class<?> repositoryInterface);
+	interface RepositoryRegistrationAotContributionBuilder {
+		RepositoryRegistrationAotContribution forRepository(Class<?> repositoryInterface);
 	}
 }

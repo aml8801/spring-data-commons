@@ -36,7 +36,7 @@ import org.springframework.data.ManagedTypes;
 /**
  * @author Christoph Strobl
  */
-class AotManagedTypesPostProcessorUnitTests {
+class ManagedTypesRegistrationAotProcessorUnitTests {
 
 	final RootBeanDefinition managedTypesDefinition = (RootBeanDefinition) BeanDefinitionBuilder
 			.rootBeanDefinition(ManagedTypes.class).setFactoryMethod("of")
@@ -102,22 +102,22 @@ class AotManagedTypesPostProcessorUnitTests {
 		assertThat(contribution).isNull();
 	}
 
-	private AotManagedTypesPostProcessor createPostProcessor(String prefix, Consumer<DefaultListableBeanFactory> action) {
+	private ManagedTypesRegistrationAotProcessor createPostProcessor(String prefix, Consumer<DefaultListableBeanFactory> action) {
 
 		DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
 		action.accept(beanFactory);
 
-		AotManagedTypesPostProcessor postProcessor = createPostProcessor(beanFactory);
+		ManagedTypesRegistrationAotProcessor postProcessor = createPostProcessor(beanFactory);
 		postProcessor.setModulePrefix(prefix);
 
 		return postProcessor;
 	}
 
-	private AotManagedTypesPostProcessor createPostProcessor(BeanFactory beanFactory) {
+	private ManagedTypesRegistrationAotProcessor createPostProcessor(BeanFactory beanFactory) {
 
-		AotManagedTypesPostProcessor aotManagedTypesPostProcessor = new AotManagedTypesPostProcessor();
-		aotManagedTypesPostProcessor.setBeanFactory(beanFactory);
-		return aotManagedTypesPostProcessor;
+		ManagedTypesRegistrationAotProcessor managedTypesRegistrationAotProcessor = new ManagedTypesRegistrationAotProcessor();
+		managedTypesRegistrationAotProcessor.setBeanFactory(beanFactory);
+		return managedTypesRegistrationAotProcessor;
 	}
 
 	static class A {}
